@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CivicGram | Social Progress</title>
+    <title>CivicGram | National Action Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
@@ -20,14 +20,16 @@
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
         
         :root {
-            --ig-blue: #0095f6;
-            --brand-gradient: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+            --civic-blue: #1e3a8a;
+            --civic-accent: #3b82f6;
+            --civic-green: #10b981;
+            --civic-bg: #f8fafc;
         }
 
         body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: #fafafa; 
-            color: #000;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--civic-bg); 
+            color: #1e293b;
             margin: 0;
             padding: 0;
             overflow-x: hidden;
@@ -36,565 +38,420 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-        /* Dashboard Layout */
-        #app-shell {
-            display: flex;
-            min-height: 100vh;
-            width: 100%;
-        }
+        /* Dashboard Shell */
+        #app-shell { display: flex; min-height: 100vh; width: 100%; }
 
         #sidebar {
-            width: 245px;
-            height: 100vh;
-            position: fixed;
-            left: 0;
-            top: 0;
-            border-right: 1px solid #efefef;
-            padding: 2rem 1rem;
-            display: none;
-            flex-direction: column;
-            background: #fff;
-            z-index: 100;
+            width: 280px; height: 100vh; position: fixed; left: 0; top: 0;
+            background: #fff; border-right: 1px solid #e2e8f0; padding: 2.5rem 1.5rem;
+            display: none; flex-direction: column; z-index: 100;
         }
 
-        #main-content {
-            flex: 1;
-            margin-left: 0;
-            max-width: 100%;
-            display: flex;
-            flex-direction: column;
-        }
+        #main-content { flex: 1; margin-left: 0; max-width: 100%; display: flex; flex-direction: column; }
+        #viewport { max-width: 800px; width: 100%; margin: 0 auto; padding: 1.5rem; padding-bottom: 120px; }
 
-        #viewport {
-            max-width: 600px;
-            width: 100%;
-            margin: 0 auto;
-            padding-bottom: 80px; 
-        }
-
-        @media (min-width: 768px) {
+        @media (min-width: 1024px) {
             #sidebar { display: flex; }
-            #main-content { margin-left: 245px; }
-            #viewport { padding-bottom: 2rem; }
+            #main-content { margin-left: 280px; }
+            #viewport { padding-top: 3rem; }
             #bottom-nav { display: none; }
             header { display: none; } 
         }
 
-        .logo-font {
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            font-weight: 800;
-            letter-spacing: -1.5px;
-            font-style: italic;
-        }
-
-        .story-ring {
-            padding: 2px;
-            background: var(--brand-gradient);
-            border-radius: 50%;
-        }
-
-        .page-transition { animation: fadeIn 0.3s ease-out forwards; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .logo-font { font-weight: 800; letter-spacing: -1px; color: var(--civic-blue); }
+        .page-transition { animation: slideUp 0.4s cubic-bezier(0, 0, 0.2, 1) forwards; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         
         .nav-link {
-            display: flex;
-            align-items: center;
-            padding: 0.8rem 1rem;
-            margin: 0.2rem 0;
-            border-radius: 8px;
-            color: #262626;
-            font-weight: 400;
-            transition: background 0.2s;
-            cursor: pointer;
+            display: flex; align-items: center; padding: 0.85rem 1.25rem; margin-bottom: 0.5rem;
+            border-radius: 16px; color: #64748b; font-weight: 700; transition: all 0.2s; cursor: pointer;
         }
-        .nav-link:hover { background: #fafafa; }
-        .nav-link.active { font-weight: 700; color: #000; }
-        .nav-link i { margin-right: 1rem; stroke-width: 2px; }
+        .nav-link:hover { background: #f8fafc; color: var(--civic-blue); }
+        .nav-link.active { background: var(--civic-blue); color: #fff !important; box-shadow: 0 4px 15px rgba(30, 58, 138, 0.2); }
 
-        .action-icon { transition: transform 0.1s ease; cursor: pointer; }
-        .action-icon:active { transform: scale(1.2); }
-
-        .btn-blue {
-            background-color: var(--ig-blue);
-            color: white;
-            font-weight: 600;
-            border-radius: 8px;
-            padding: 0.5rem 1rem;
-            transition: opacity 0.2s;
+        .report-card {
+            background: white; border-radius: 28px; border: 1px solid #f1f5f9;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); margin-bottom: 2.5rem; overflow: hidden;
+            transition: all 0.3s ease;
         }
-        .btn-blue:disabled { opacity: 0.4; cursor: not-allowed; }
+        .report-card:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05); }
 
-        .post-card {
-            background: white;
-            border-bottom: 1px solid #efefef;
-            padding-bottom: 1.5rem;
-        }
-        @media (min-width: 768px) {
-            .post-card {
-                border: 1px solid #efefef;
-                border-radius: 8px;
-                margin-top: 1.5rem;
-            }
-        }
-
-        .image-grid { display: grid; gap: 2px; background: #fff; width: 100%; aspect-ratio: 1/1; overflow: hidden; cursor: pointer; }
+        .civic-grid { display: grid; gap: 4px; background: #fff; width: 100%; aspect-ratio: 16/10; overflow: hidden; cursor: pointer; }
         .grid-1 { grid-template-columns: 1fr; }
         .grid-2 { grid-template-columns: 1fr 1fr; }
-        .grid-3 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+        .grid-3 { grid-template-columns: 2fr 1fr; grid-template-rows: 1fr 1fr; }
         .grid-3 .grid-item:first-child { grid-row: span 2; }
         .grid-4 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
-        
-        .grid-item { width: 100%; height: 100%; object-fit: cover; transition: opacity 0.2s; }
-        .grid-item:hover { opacity: 0.9; }
+        .grid-item { width: 100%; height: 100%; object-fit: cover; }
 
-        .upload-wrapper { position: relative; cursor: pointer; overflow: hidden; }
-        .upload-wrapper input {
-            position: absolute;
-            inset: 0;
-            opacity: 0;
-            cursor: pointer;
-            z-index: 30;
-        }
+        .status-pill { padding: 6px 14px; border-radius: 100px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
 
-        .upload-overlay {
-            position: absolute;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.8);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            z-index: 25;
-            backdrop-filter: blur(2px);
-            pointer-events: none;
-        }
-
-        #map-container { height: calc(100vh - 120px); width: 100%; z-index: 10; }
-        @media (min-width: 768px) { #map-container { height: calc(100vh - 40px); border-radius: 12px; margin-top: 20px; } }
-        
         #fullscreen-overlay, #cropper-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.95);
-            z-index: 2000;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
+            display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.98);
+            z-index: 2000; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(12px);
         }
 
-        .fullscreen-image {
-            max-width: 95%;
-            max-height: 80vh;
-            object-fit: contain;
-            border-radius: 4px;
-        }
+        .avatar-lg { width: 100px; height: 100px; border-radius: 50%; overflow: hidden; border: 4px solid #fff; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
 
-        .avatar-lg {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            overflow: hidden; 
-            border: 1px solid #efefef;
+        .btn-action {
+            display: flex; align-items: center; justify-content: center; padding: 0.85rem;
+            border-radius: 18px; background: #f8fafc; color: #475569; font-weight: 800; font-size: 12px; transition: all 0.2s;
         }
+        .btn-action:hover { background: #f1f5f9; color: var(--civic-blue); }
+        .btn-action.active { color: #ef4444; background: #fef2f2; }
+        .btn-action.saved { color: #3b82f6; background: #eff6ff; }
 
-        .social-chip {
-            display: inline-flex;
-            align-items: center;
-            padding: 4px 12px;
-            background: #f1f5f9;
-            border-radius: 20px;
-            font-size: 11px;
-            font-weight: 600;
-            color: #475569;
-            margin-right: 8px;
-            margin-bottom: 8px;
+        .upload-area {
+            border: 2px dashed #e2e8f0; border-radius: 32px; padding: 2.5rem;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            background: #f8fafc; transition: all 0.2s; cursor: pointer; position: relative;
+            overflow: hidden; min-height: 250px;
         }
+        .upload-area:hover { border-color: var(--civic-accent); background: #f1f5f9; }
 
-        .leaflet-popup-content-wrapper { border-radius: 16px; padding: 0; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
-        .leaflet-popup-content { margin: 0 !important; width: 240px !important; }
+        .profile-tab {
+            padding: 12px 24px; font-size: 11px; font-weight: 800; text-transform: uppercase; border-bottom: 3px solid transparent; color: #94a3b8; transition: all 0.2s;
+        }
+        .profile-tab.active { color: var(--civic-blue); border-bottom-color: var(--civic-blue); }
+
+        #map-container { 
+            height: calc(100vh - 150px); width: 100%; border-radius: 32px;
+            overflow: hidden; border: 8px solid white; box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
     </style>
 </head>
 <body>
 
-    <!-- FULLSCREEN IMAGE VIEW OVERLAY -->
+    <!-- OVERLAYS -->
     <div id="fullscreen-overlay">
-        <button onclick="closeFullscreen()" class="absolute top-6 right-6 text-white p-2 hover:bg-white/10 rounded-full transition-colors">
-            <i data-lucide="x" class="w-8 h-8"></i>
-        </button>
-        <button id="fs-prev" class="absolute left-4 top-1/2 -translate-y-1/2 text-white p-4 hover:bg-white/10 rounded-full transition-colors hidden">
-            <i data-lucide="chevron-left" class="w-10 h-10"></i>
-        </button>
-        <button id="fs-next" class="absolute right-4 top-1/2 -translate-y-1/2 text-white p-4 hover:bg-white/10 rounded-full transition-colors hidden">
-            <i data-lucide="chevron-right" class="w-10 h-10"></i>
-        </button>
-        <img id="fullscreen-img" class="fullscreen-image scale-in-center animate-in fade-in zoom-in duration-300">
-        <div id="fs-counter" class="absolute bottom-10 text-white font-bold text-sm bg-black/50 px-4 py-1 rounded-full uppercase tracking-widest"></div>
+        <button onclick="closeFullscreen()" class="absolute top-8 right-8 text-white p-3 hover:bg-white/10 rounded-full transition-all"><i data-lucide="x" class="w-8 h-8"></i></button>
+        <button id="fs-prev" class="absolute left-8 top-1/2 -translate-y-1/2 text-white p-5 hover:bg-white/10 rounded-full transition-all hidden"><i data-lucide="chevron-left" class="w-10 h-10"></i></button>
+        <button id="fs-next" class="absolute right-8 top-1/2 -translate-y-1/2 text-white p-4 hover:bg-white/10 rounded-full transition-all hidden"><i data-lucide="chevron-right" class="w-10 h-10"></i></button>
+        <img id="fullscreen-img" class="max-w-[95%] max-h-[85vh] object-contain rounded-2xl shadow-2xl">
+        <div id="fs-counter" class="absolute bottom-12 text-white font-black bg-blue-600 px-8 py-2 rounded-full text-[10px] uppercase tracking-widest"></div>
     </div>
 
-    <!-- CROPPER OVERLAY -->
     <div id="cropper-overlay">
-        <div class="w-full max-w-md bg-white rounded-3xl overflow-hidden shadow-2xl flex flex-col mx-4">
-            <div class="px-6 py-4 border-b flex justify-between items-center">
-                <button onclick="closeCropper()" class="text-sm font-bold text-slate-500">Cancel</button>
-                <h3 class="font-bold text-slate-900 uppercase text-xs tracking-widest">Adjust Identity</h3>
-                <button onclick="applyCrop()" class="text-blue-500 font-bold text-sm">Apply</button>
+        <div class="w-full max-w-lg bg-white rounded-[48px] overflow-hidden shadow-2xl flex flex-col mx-4 text-center">
+            <div class="px-10 py-8 border-b flex justify-between items-center bg-slate-50/50">
+                <button onclick="closeCropper()" class="text-xs font-black uppercase text-slate-400">Cancel</button>
+                <h3 class="font-black text-slate-900 uppercase text-[10px] tracking-widest">Citizen ID Context</h3>
+                <button onclick="applyCrop()" class="bg-blue-600 text-white px-8 py-2 rounded-full font-black text-[10px] uppercase">Apply</button>
             </div>
-            <div class="p-4 bg-slate-900 flex items-center justify-center min-h-[300px]">
-                <img id="cropper-target" src="" class="max-w-full">
-            </div>
-            <div class="p-6 bg-white text-center">
-                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Crop your avatar to a perfect circle.</p>
-            </div>
+            <div class="p-4 bg-slate-900 flex items-center justify-center min-h-[350px]"><img id="cropper-target" src="" class="max-w-full"></div>
         </div>
     </div>
 
     <div id="app-shell">
         <aside id="sidebar">
-            <h1 onclick="window.location.hash = '#/feed'" class="logo-font text-2xl mb-10 px-4 cursor-pointer select-none text-slate-900">CivicGram</h1>
+            <div class="flex items-center space-x-4 mb-16 px-2">
+                <div class="w-12 h-12 bg-blue-700 rounded-[18px] flex items-center justify-center shadow-2xl shadow-blue-200"><i data-lucide="database" class="text-white w-6 h-6"></i></div>
+                <h1 onclick="window.location.hash = '#/feed'" class="logo-font text-2xl cursor-pointer italic text-slate-900">CivicGram</h1>
+            </div>
             <nav class="flex-1">
-                <div onclick="window.location.hash = '#/feed'" class="nav-link" data-route="feed"><i data-lucide="home"></i><span>Home</span></div>
-                <div onclick="window.location.hash = '#/search'" class="nav-link" data-route="search"><i data-lucide="search"></i><span>Search</span></div>
-                <div onclick="window.location.hash = '#/create'" class="nav-link" data-route="create"><i data-lucide="plus-square"></i><span>Create</span></div>
-                <div onclick="window.location.hash = '#/map'" class="nav-link" data-route="map"><i data-lucide="map-pin"></i><span>Map</span></div>
-                <div onclick="window.location.hash = '#/notifications'" class="nav-link" data-route="notifications"><i data-lucide="heart"></i><span>Notifications</span></div>
-                <div onclick="window.location.hash = '#/profile'" class="nav-link" data-route="profile">
-                    <div id="sidebar-avatar" class="w-6 h-6 rounded-full bg-slate-100 mr-4 flex items-center justify-center text-[10px] font-bold border border-slate-200 uppercase overflow-hidden text-slate-800">
-                        <i data-lucide="user" class="w-4 h-4"></i>
-                    </div>
-                    <span>Profile</span>
+                <div onclick="window.location.hash = '#/feed'" class="nav-link" data-route="feed"><i data-lucide="activity"></i><span>Live Feed</span></div>
+                <div onclick="window.location.hash = '#/map'" class="nav-link" data-route="map"><i data-lucide="map"></i><span>National Map</span></div>
+                <div onclick="window.location.hash = '#/create'" class="nav-link" data-route="create"><i data-lucide="plus-square"></i><span>Create Report</span></div>
+                <div onclick="window.location.hash = '#/notifications'" class="nav-link" data-route="notifications"><i data-lucide="bell"></i><span>Activity</span></div>
+                <div onclick="window.location.hash = '#/u'" class="nav-link" data-route="u">
+                    <div id="sidebar-avatar" class="w-6 h-6 rounded-full bg-slate-100 mr-4 flex items-center justify-center text-[10px] font-bold border border-slate-200 uppercase overflow-hidden text-slate-800"><i data-lucide="user"></i></div>
+                    <span>My Account</span>
                 </div>
             </nav>
-            <div class="px-4 mt-auto" id="sidebar-auth-zone"><button onclick="window.location.hash = '#/auth'" class="btn-blue w-full">Log In</button></div>
+            <div id="sidebar-auth-zone" class="pt-8 border-t border-slate-100">
+                <button onclick="window.location.hash = '#/auth'" class="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest">Sign In</button>
+            </div>
         </aside>
 
         <div id="main-content">
-            <header class="sticky top-0 glass-header px-4 py-3 flex justify-between items-center shrink-0 md:hidden bg-white/95 backdrop-blur-md border-b border-slate-100 z-50">
-                <h1 onclick="window.location.hash = '#/feed'" class="logo-font text-2xl cursor-pointer text-slate-900">CivicGram</h1>
-                <div class="flex items-center space-x-4">
-                    <button onclick="window.location.hash = '#/notifications'" class="relative"><i data-lucide="heart" class="w-6 h-6 text-slate-900"></i><span id="notif-badge" class="hidden absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span></button>
-                    <div id="mobile-auth-header"><i data-lucide="log-in" class="w-6 h-6 text-slate-900" onclick="window.location.hash = '#/auth'"></i></div>
-                </div>
+            <header class="sticky top-0 bg-white/80 backdrop-blur-xl border-b border-slate-100 px-6 py-5 flex justify-between items-center z-50 lg:hidden">
+                <div class="flex items-center space-x-2"><i data-lucide="database" class="text-blue-600 w-5 h-5"></i><h1 onclick="window.location.hash = '#/feed'" class="logo-font text-lg text-slate-900">CivicGram</h1></div>
+                <div id="mobile-auth-header"><i data-lucide="user" class="w-6 h-6 text-slate-400 cursor-pointer" onclick="window.location.hash = '#/auth'"></i></div>
             </header>
-
             <main id="viewport" class="page-transition">
-                <div class="h-96 flex items-center justify-center"><div class="w-6 h-6 border-2 border-slate-200 border-t-slate-800 rounded-full animate-spin"></div></div>
+                <div class="h-96 flex items-center justify-center"><div class="w-10 h-10 border-4 border-slate-100 border-t-blue-600 rounded-full animate-spin"></div></div>
             </main>
-
-            <nav id="bottom-nav" class="fixed bottom-0 w-full bg-white border-t border-slate-200 flex justify-around items-center py-3 px-2 z-50 md:hidden">
-                <button onclick="window.location.hash = '#/feed'" class="nav-btn p-1 text-slate-400" data-route="feed"><i data-lucide="home" class="w-7 h-7"></i></button>
-                <button onclick="window.location.hash = '#/search'" class="nav-btn p-1 text-slate-400" data-route="search"><i data-lucide="search" class="w-7 h-7"></i></button>
-                <button onclick="window.location.hash = '#/create'" class="nav-btn p-1 text-slate-400" data-route="create"><i data-lucide="plus-square" class="w-7 h-7"></i></button>
-                <button onclick="window.location.hash = '#/map'" class="nav-btn p-1 text-slate-400" data-route="map"><i data-lucide="map-pin" class="w-7 h-7"></i></button>
-                <button onclick="window.location.hash = '#/profile'" class="nav-btn p-1 text-slate-400" data-route="profile"><div id="nav-avatar-circle" class="w-7 h-7 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center overflow-hidden text-[10px] font-bold uppercase text-slate-800"><i data-lucide="user" class="w-5 h-5"></i></div></button>
+            <nav id="bottom-nav" class="fixed bottom-0 w-full bg-white/90 backdrop-blur-xl border-t border-slate-100 flex justify-around items-center py-5 px-2 z-50 lg:hidden shadow-2xl">
+                <button onclick="window.location.hash = '#/feed'" class="nav-btn p-2" data-route="feed"><i data-lucide="activity"></i></button>
+                <button onclick="window.location.hash = '#/map'" class="nav-btn p-2" data-route="map"><i data-lucide="map"></i></button>
+                <button onclick="window.location.hash = '#/create'" class="nav-btn p-3 bg-blue-700 text-white rounded-2xl shadow-lg -translate-y-4" data-route="create"><i data-lucide="plus"></i></button>
+                <button onclick="window.location.hash = '#/notifications'" class="nav-btn p-2" data-route="notifications"><i data-lucide="bell"></i></button>
+                <button onclick="window.location.hash = '#/u'" class="nav-btn p-2" data-route="u"><i data-lucide="user"></i></button>
             </nav>
         </div>
     </div>
 
-    <div id="toast-container" class="fixed bottom-24 left-1/2 -translate-x-1/2 z-[110] w-72 pointer-events-none flex flex-col items-center md:bottom-10"></div>
+    <div id="toast-container" class="fixed bottom-28 right-6 z-[3000] flex flex-col items-end pointer-events-none"></div>
 
     <script type="text/javascript">
-        // --- 1. CONFIGURATION ---
+        // --- 1. CORE CONFIGURATION & STATE ---
         const IMGBB_API_KEY = '0abf983309932d2a2eeb289d53d7c55c';
         const SB_URL = 'https://lsfdeyayvdyohbjnqizt.supabase.co';
         const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxzZmRleWF5dmR5b2hiam5xaXp0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3MDk5NTAsImV4cCI6MjA4NzI4NTk1MH0.7FonFhSDEqA6jfiT4JulxBZT_eIhIHvwoMycdyZlhC4';
-        
-        if (!window.civicSb) { window.civicSb = window.supabase.createClient(SB_URL, SB_KEY); }
-        const sb = window.civicSb;
+        const sb = window.supabase.createClient(SB_URL, SB_KEY);
 
-        // --- 2. APP STATE ---
         const state = { 
-            user: null, posts: [], notifications: [], myLikes: [],
+            user: null, posts: [], notifications: [], myLikes: [], myFollows: [], mySaves: [],
             authMode: 'login', categories: ['Roads', 'Trash', 'Safety', 'Lights', 'Water', 'Parks'],
             isUploading: false, tempImageUrls: [],
-            currentLat: null, currentLng: null,
-            currentView: null,
-            fsGallery: [], fsIndex: 0,
+            currentLat: 20.5937, currentLng: 78.9629,
+            currentView: null, profileTab: 'reports',
             cropper: null, activePreviewId: null, activeBtnId: null
         };
 
-        // --- 3. ROUTER ---
-        async function handleNavigation() {
-            const viewport = document.getElementById('viewport');
-            const hash = window.location.hash || '#/feed';
-            const parts = hash.split('/');
-            const route = parts[1] || 'feed';
-            const param = parts[2];
+        // --- 2. CORE UTILITIES (Hoisted Declaration Order) ---
+        
+        function parseImages(imgData) {
+            if (!imgData) return []; if (Array.isArray(imgData)) return imgData;
+            try { if (typeof imgData === 'string' && imgData.trim().startsWith('[')) return JSON.parse(imgData); return [imgData]; } catch (e) { return [imgData]; }
+        }
 
-            const viewKey = route + (param || '');
-            if (state.currentView === viewKey && route !== 'feed') return; 
-            state.currentView = viewKey;
+        function showToast(m) {
+            const c = document.getElementById('toast-container');
+            if (!c) return;
+            const t = document.createElement('div');
+            t.className = "bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest px-8 py-4 rounded-2xl shadow-2xl mb-4 animate-in slide-in-from-right duration-300";
+            t.innerText = m; c.appendChild(t); setTimeout(() => t.remove(), 4000);
+        }
 
-            if (['create', 'notifications', 'edit-profile'].includes(route) && !state.user) { window.location.hash = '#/auth'; return; }
+        function closeFullscreen() { document.getElementById('fullscreen-overlay').style.display = 'none'; }
+        function closeCropper() { document.getElementById('cropper-overlay').style.display = 'none'; if (state.cropper) state.cropper.destroy(); }
 
-            document.querySelectorAll('.nav-link, .nav-btn').forEach(btn => {
-                const isActive = btn.getAttribute('data-route') === route;
-                btn.classList.toggle('active', isActive);
-                if (btn.classList.contains('nav-btn')) {
-                    btn.classList.toggle('text-slate-900', isActive);
-                    btn.classList.toggle('text-slate-400', !isActive);
-                }
-            });
+        function openFullscreen(imagesJson, index) {
+            const images = parseImages(imagesJson);
+            if (!images.length) return;
+            const overlay = document.getElementById('fullscreen-overlay');
+            const img = document.getElementById('fullscreen-img');
+            overlay.style.display = 'flex';
+            img.src = images[index];
+            document.getElementById('fs-counter').innerText = `${index+1} / ${images.length}`;
+            document.getElementById('fs-prev').classList.toggle('hidden', images.length <= 1);
+            document.getElementById('fs-next').classList.toggle('hidden', images.length <= 1);
+            document.getElementById('fs-prev').onclick = () => openFullscreen(images, (index - 1 + images.length) % images.length);
+            document.getElementById('fs-next').onclick = () => openFullscreen(images, (index + 1) % images.length);
+        }
 
-            if (route !== 'create' && route !== 'edit-profile') { state.tempImageUrls = []; state.isUploading = false; }
-
-            window.scrollTo(0, 0);
-
-            switch(route) {
-                case 'feed': renderFeed(viewport); break;
-                case 'auth': renderAuth(viewport); break;
-                case 'create': renderCreate(viewport); break;
-                case 'profile': renderProfile(viewport, param); break;
-                case 'edit-profile': renderEditProfile(viewport); break;
-                case 'notifications': renderNotifications(viewport); break;
-                case 'post': renderPostDetail(viewport, param); break;
-                case 'search': renderSearch(viewport); break;
-                case 'map': renderMap(viewport); break;
-                default: window.location.hash = '#/feed';
+        function updateGlobalUI() {
+            const authS = document.getElementById('sidebar-auth-zone');
+            const mobA = document.getElementById('mobile-auth-header');
+            const sideA = document.getElementById('sidebar-avatar');
+            if (state.user) {
+                authS.innerHTML = `<button onclick="handleLogout()" class="w-full py-4 border border-slate-100 rounded-2xl font-black text-[10px] uppercase text-slate-400 hover:bg-slate-50 transition-colors">Sign Out</button>`;
+                const img = `<img src="${state.user.avatar_url}" class="w-full h-full object-cover">`;
+                mobA.innerHTML = `<div onclick="window.location.hash='#/u'" class="w-10 h-10 rounded-[14px] overflow-hidden bg-slate-100 flex items-center justify-center text-[10px] font-black uppercase cursor-pointer border border-white shadow-sm">${state.user.avatar_url ? img : state.user.username[0]}</div>`;
+                sideA.innerHTML = state.user.avatar_url ? img : state.user.username[0];
+            } else {
+                authS.innerHTML = `<button onclick="window.location.hash='#/auth'" class="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl">Sign In</button>`;
+                mobA.innerHTML = `<i data-lucide="user" class="w-6 h-6 text-slate-300 cursor-pointer" onclick="window.location.hash='#/auth'"></i>`;
+                sideA.innerHTML = `<i data-lucide="user"></i>`;
             }
             lucide.createIcons();
         }
 
-        // --- 4. CORE DATA ---
-        async function init() {
-            const { data: { session } } = await sb.auth.getSession();
-            await syncUser(session?.user);
+        // --- 3. DATA FETCHING ---
 
-            sb.auth.onAuthStateChange((_event, session) => syncUser(session?.user));
-            sb.channel('public:posts').on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, async () => {
-                await fetchPosts();
-                if (window.location.hash === '#/feed') handleNavigation();
-            }).subscribe();
-            
-            await fetchPosts();
-            window.addEventListener('hashchange', handleNavigation);
-            handleNavigation();
-
-            navigator.geolocation.getCurrentPosition(
-                (pos) => { state.currentLat = pos.coords.latitude; state.currentLng = pos.coords.longitude; },
-                () => console.warn("Location services restricted")
-            );
+        async function fetchNotifications() { 
+            if (!state.user) return; 
+            const { data } = await sb.from('notifications').select('*').eq('user_id', state.user.id).order('created_at', { ascending: false }); 
+            state.notifications = data || []; 
+            const badge = document.getElementById('notif-badge');
+            if(badge) badge.classList.toggle('hidden', !state.notifications.some(n => !n.is_read)); 
         }
+
+        async function fetchPosts() { const { data } = await sb.from('posts').select('*, comments(*)').order('created_at', { ascending: false }); state.posts = data || []; }
 
         async function syncUser(user) {
             if (user) {
                 const { data: profile } = await sb.from('profiles').select('*').eq('id', user.id).single();
-                state.user = { 
-                    uid: user.id, username: profile?.username || user.email.split('@')[0], 
-                    display_name: profile?.display_name || profile?.username || 'Citizen',
-                    avatar_url: profile?.avatar_url, bio: profile?.bio, twitter: profile?.twitter, instagram: profile?.instagram, website: profile?.website
-                };
-                const { data: likes } = await sb.from('post_upvotes').select('post_id').eq('user_id', user.id);
-                state.myLikes = likes ? likes.map(l => l.post_id) : [];
-                fetchNotifications();
-            } else { state.user = null; state.myLikes = []; }
+                state.user = { id: user.id, username: profile?.username || user.email.split('@')[0], display_name: profile?.display_name || profile?.username, avatar_url: profile?.avatar_url, bio: profile?.bio };
+                const [{ data: likes }, { data: follows }, { data: saves }] = await Promise.all([
+                    sb.from('post_upvotes').select('post_id').eq('user_id', user.id),
+                    sb.from('follows').select('following_id').eq('follower_id', user.id),
+                    sb.from('post_saves').select('post_id').eq('user_id', user.id)
+                ]);
+                state.myLikes = likes?.map(l => l.post_id) || [];
+                state.myFollows = follows?.map(f => f.following_id) || [];
+                state.mySaves = saves?.map(s => s.post_id) || [];
+                await fetchNotifications();
+            } else { state.user = null; state.myLikes = []; state.myFollows = []; state.mySaves = []; }
             updateGlobalUI();
         }
 
-        async function fetchPosts() {
-            const { data: posts } = await sb.from('posts').select('*, comments(*)').order('created_at', { ascending: false });
-            state.posts = posts || [];
-        }
+        // --- 4. ENGINE GLOBALS ---
 
-        async function fetchNotifications() {
-            if (!state.user) return;
-            const { data } = await sb.from('notifications').select('*').eq('user_id', state.user.uid).order('created_at', { ascending: false });
-            state.notifications = data || [];
-            document.getElementById('notif-badge')?.classList.toggle('hidden', !state.notifications.some(n => !n.is_read));
-        }
-
-        // --- 5. IMAGE & UTILITY LOGIC ---
-        
-        function parseImages(imgData) {
-            if (!imgData) return [];
-            if (Array.isArray(imgData)) return imgData;
-            try {
-                if (typeof imgData === 'string' && imgData.trim().startsWith('[')) {
-                    const parsed = JSON.parse(imgData);
-                    return Array.isArray(parsed) ? parsed : [imgData];
-                }
-                return [imgData];
-            } catch (e) { return [imgData]; }
-        }
-
-        function openFullscreen(images, index) {
-            if (!images || !images.length) return;
-            state.fsGallery = images;
-            state.fsIndex = index;
-            const overlay = document.getElementById('fullscreen-overlay');
-            const img = document.getElementById('fullscreen-img');
-            const counter = document.getElementById('fs-counter');
-            overlay.style.display = 'flex';
-            img.src = images[index];
-            counter.innerText = `${index + 1} / ${images.length}`;
-            document.getElementById('fs-prev').classList.toggle('hidden', images.length <= 1);
-            document.getElementById('fs-next').classList.toggle('hidden', images.length <= 1);
-            
-            document.getElementById('fs-prev').onclick = (e) => { e.stopPropagation(); state.fsIndex = (state.fsIndex - 1 + images.length) % images.length; img.src = images[state.fsIndex]; counter.innerText = `${state.fsIndex + 1} / ${images.length}`; };
-            document.getElementById('fs-next').onclick = (e) => { e.stopPropagation(); state.fsIndex = (state.fsIndex + 1) % images.length; img.src = images[state.fsIndex]; counter.innerText = `${state.fsIndex + 1} / ${images.length}`; };
-        }
-
-        // Global access for dynamic popups
-        window.openGallery = (postId, index) => {
+        window.handlePostGallery = (postId, index) => {
             const post = state.posts.find(p => p.id == postId);
-            if (!post) return;
-            openFullscreen(parseImages(post.image), index);
+            if (post) openFullscreen(post.image, index);
         };
 
-        function closeFullscreen() { document.getElementById('fullscreen-overlay').style.display = 'none'; }
+        window.handlePostUpvote = async (postId) => {
+            if (!state.user) { window.location.hash = '#/auth'; return; }
+            const post = state.posts.find(p => p.id == postId); if (!post) return;
+            const heartEls = document.querySelectorAll(`[id^="heart-${postId}"]`);
+            const countEls = document.querySelectorAll(`[id^="vote-count-${postId}"]`);
+            const isLiked = state.myLikes.includes(postId);
+            const count = parseInt(countEls[0]?.innerText || 0);
 
-        function renderImageGrid(post) {
-            const images = parseImages(post.image);
-            if (!images || !images.length) return '';
-            const gridClass = images.length >= 4 ? 'grid-4' : `grid-${images.length}`;
-            return `<div class="image-grid ${gridClass}">${images.slice(0, 4).map((img, idx) => `<div class="relative w-full h-full" onclick="event.stopPropagation(); window.openGallery(${post.id}, ${idx})"><img src="${img}" class="grid-item">${idx === 3 && images.length > 4 ? `<div class="absolute inset-0 bg-black/50 flex items-center justify-center text-white font-bold text-xl">+${images.length - 4}</div>` : ''}</div>`).join('')}</div>`;
-        }
-
-        function handleImageSelection(event, previewId, buttonId) {
-            const files = Array.from(event.target.files || []);
-            if (!files.length) return;
-            if (previewId === 'avatar-preview') {
-                state.activePreviewId = previewId; state.activeBtnId = buttonId;
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    const overlay = document.getElementById('cropper-overlay');
-                    const target = document.getElementById('cropper-target');
-                    target.src = e.target.result;
-                    overlay.style.display = 'flex';
-                    if (state.cropper) state.cropper.destroy();
-                    state.cropper = new Cropper(target, { aspectRatio: 1, viewMode: 1, dragMode: 'move', autoCropArea: 1 });
-                };
-                reader.readAsDataURL(files[0]);
-                return;
+            if (isLiked) {
+                state.myLikes = state.myLikes.filter(id => id !== postId);
+                heartEls.forEach(el => el.classList.remove('active'));
+                countEls.forEach(el => el.innerText = `${Math.max(0, count - 1)}`);
+                await sb.from('post_upvotes').delete().match({ post_id: postId, user_id: state.user.id });
+            } else {
+                state.myLikes.push(postId);
+                heartEls.forEach(el => el.classList.add('active', 'animate-pulse'));
+                countEls.forEach(el => el.innerText = `${count + 1}`);
+                await sb.from('post_upvotes').insert({ post_id: postId, user_id: state.user.id });
+                if (post.author_id !== state.user.id) await sb.from('notifications').insert({ user_id: post.author_id, actor_id: state.user.id, actor_username: state.user.username, post_id: postId, type: 'upvote' });
             }
-            handlePostImages(files, previewId, buttonId);
-        }
+        };
 
-        function closeCropper() { document.getElementById('cropper-overlay').style.display = 'none'; if (state.cropper) state.cropper.destroy(); }
+        window.handlePostSave = async (postId) => {
+            if (!state.user) { window.location.hash = '#/auth'; return; }
+            const isSaved = state.mySaves.includes(postId);
+            const saveEls = document.querySelectorAll(`[id^="save-${postId}"]`);
 
-        async function applyCrop() {
-            if (!state.cropper) return;
-            const canvas = state.cropper.getCroppedCanvas({ width: 400, height: 400 });
-            closeCropper();
-            const preview = document.getElementById(state.activePreviewId);
-            const btn = document.getElementById(state.activeBtnId);
-            if (preview) {
-                preview.innerHTML = `<img src="${canvas.toDataURL()}" class="w-full h-full object-cover rounded-full">`;
-                const overlay = document.createElement('div');
-                overlay.className = 'upload-overlay'; overlay.id = 'uploading-ui';
-                overlay.innerHTML = `<i data-lucide="upload-cloud" class="w-8 h-8 mb-2 animate-bounce"></i><span class="text-[9px] font-black uppercase tracking-widest">UPLOADING...</span>`;
-                preview.appendChild(overlay); lucide.createIcons();
+            if (isSaved) {
+                state.mySaves = state.mySaves.filter(id => id !== postId);
+                saveEls.forEach(el => el.classList.remove('saved'));
+                await sb.from('post_saves').delete().match({ post_id: postId, user_id: state.user.id });
+                showToast("Removed Archive");
+            } else {
+                state.mySaves.push(postId);
+                saveEls.forEach(el => el.classList.add('saved'));
+                await sb.from('post_saves').insert({ post_id: postId, user_id: state.user.id });
+                showToast("Saved to Archive");
             }
-            state.isUploading = true; if (btn) btn.disabled = true;
-            canvas.toBlob(async (blob) => {
-                const formData = new FormData();
-                formData.append('image', blob, 'avatar.png');
-                try {
-                    const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, { method: 'POST', body: formData });
-                    const data = await response.json();
-                    if (data.success) { state.tempImageUrls = [data.data.url]; showToast(`Avatar Ready`); }
-                } catch (err) { showToast("Upload failed"); } finally { state.isUploading = false; if (btn) btn.disabled = false; document.getElementById('uploading-ui')?.remove(); }
-            });
-        }
+        };
 
-        async function handlePostImages(files, previewId, buttonId) {
-            const preview = document.getElementById(previewId);
-            const btn = document.getElementById(buttonId);
-            state.isUploading = true; if (btn) btn.disabled = true;
-            if (preview) {
-                preview.innerHTML = `<div class="w-full h-full bg-slate-100 flex items-center justify-center text-slate-400 font-bold">${files.length} Photo(s)</div>`;
-                const overlay = document.createElement('div');
-                overlay.className = 'upload-overlay'; overlay.id = 'uploading-ui';
-                overlay.innerHTML = `<i data-lucide="upload-cloud" class="w-8 h-8 mb-2 animate-bounce"></i><span class="text-[9px] font-black uppercase tracking-widest">UPLOADING...</span>`;
-                preview.appendChild(overlay); lucide.createIcons();
+        window.handleShare = async (postId) => {
+            const url = `${window.location.origin}${window.location.pathname}#/post/${postId}`;
+            if (navigator.share) {
+                try { await navigator.share({ title: 'CivicGram Case', text: 'Action Required', url }); } catch(e) {}
+            } else {
+                const el = document.createElement('textarea'); el.value = url; document.body.appendChild(el); el.select(); document.execCommand('copy'); document.body.removeChild(el);
+                showToast("Link Copied to Clipboard");
             }
-            try {
-                const uploadPromises = files.map(file => {
-                    const formData = new FormData(); formData.append('image', file);
-                    return fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, { method: 'POST', body: formData })
-                        .then(res => res.json()).then(data => data.success ? data.data.url : null);
-                });
-                const urls = await Promise.all(uploadPromises);
-                state.tempImageUrls = urls.filter(u => u !== null);
-                if (preview && state.tempImageUrls.length > 0) preview.innerHTML = `<img src="${state.tempImageUrls[0]}" class="w-full h-full object-cover">`;
-                showToast(`Gallery ready`);
-            } catch (err) { showToast("Upload failed"); } finally { state.isUploading = false; if (btn) btn.disabled = false; document.getElementById('uploading-ui')?.remove(); }
-        }
+        };
 
-        // --- 6. RENDERERS ---
+        window.handleFollow = async (targetUserId) => {
+            if (!state.user) { window.location.hash = '#/auth'; return; }
+            const isFollowing = state.myFollows.includes(targetUserId);
+            const btn = document.getElementById('follow-btn');
+            
+            if (isFollowing) {
+                state.myFollows = state.myFollows.filter(id => id !== targetUserId);
+                if (btn) { btn.innerText = "Connect"; btn.classList.remove('bg-slate-100'); btn.classList.add('bg-blue-600', 'text-white'); }
+                await sb.from('follows').delete().match({ follower_id: state.user.id, following_id: targetUserId });
+            } else {
+                state.myFollows.push(targetUserId);
+                if (btn) { btn.innerText = "Following"; btn.classList.add('bg-slate-100'); btn.classList.remove('bg-blue-600', 'text-white'); }
+                await sb.from('follows').insert({ follower_id: state.user.id, following_id: targetUserId });
+                showToast("Connection Synced");
+            }
+            const parts = window.location.hash.split('/');
+            if (parts[1] === 'u') renderProfile(document.getElementById('viewport'), parts[2]);
+        };
+
+        // --- 5. RENDERERS ---
 
         function renderFeed(c) {
             c.innerHTML = `
-                <div class="flex space-x-4 px-4 py-6 border-b border-slate-100 overflow-x-auto no-scrollbar bg-white md:border-none md:mt-4">
-                    ${state.categories.map(cat => `<div class="flex flex-col items-center space-y-2 shrink-0 cursor-pointer group"><div class="story-ring group-active:scale-90 transition-transform"><div class="bg-white p-[2px] rounded-full"><div class="w-16 h-16 bg-slate-50 border border-slate-100 rounded-full flex items-center justify-center font-bold text-blue-600 text-[10px] uppercase">${cat[0]}</div></div></div><span class="text-[11px] text-slate-500 font-medium">${cat}</span></div>`).join('')}
+                <div class="flex space-x-3 mb-10 overflow-x-auto no-scrollbar pb-2">
+                    ${state.categories.map(cat => `<button class="shrink-0 px-6 py-3 bg-white border border-slate-100 rounded-2xl text-[11px] font-black uppercase text-slate-500 hover:text-blue-600 transition-all shadow-sm">#${cat}</button>`).join('')}
                 </div>
-                <div class="space-y-6 md:space-y-8">
+                <div class="space-y-10">
                     ${state.posts.map(post => {
                         const isLiked = state.myLikes.includes(post.id);
+                        const isSaved = state.mySaves.includes(post.id);
+                        const imgs = parseImages(post.image);
                         return `
-                        <article class="post-card animate-in fade-in" id="post-${post.id}">
-                            <div class="px-4 py-3 flex items-center justify-between">
-                                <div class="flex items-center space-x-3 cursor-pointer" onclick="window.location.hash = '#/profile/${post.author}'">
-                                    <div class="w-8 h-8 rounded-full border border-slate-200 bg-slate-50 flex items-center justify-center font-bold text-[10px] uppercase overflow-hidden text-slate-800">
+                        <article class="report-card animate-in fade-in" id="post-${post.id}">
+                            <div class="p-8 flex items-center justify-between">
+                                <div class="flex items-center space-x-4 cursor-pointer" onclick="window.location.hash = '#/u/${post.author}'">
+                                    <div class="w-14 h-14 rounded-[20px] bg-slate-50 flex items-center justify-center font-bold text-slate-400 overflow-hidden shadow-inner border border-slate-100">
                                         ${post.author_avatar ? `<img src="${post.author_avatar}" class="w-full h-full object-cover">` : post.author[0]}
                                     </div>
                                     <div class="flex flex-col">
-                                        <p class="text-[13px] font-bold text-slate-900 leading-none">@${post.author}</p>
-                                        <p class="text-[10px] text-slate-400 font-medium uppercase mt-1 tracking-wider">${post.location}</p>
+                                        <div class="flex items-center">
+                                            <div class="w-4 h-4 rounded-full overflow-hidden bg-slate-200 mr-2 flex items-center justify-center text-[6px] font-black">
+                                                 ${post.author_avatar ? `<img src="${post.author_avatar}" class="w-full h-full object-cover">` : 'C'}
+                                            </div>
+                                            <p class="text-sm font-black text-slate-900 leading-tight italic uppercase tracking-tighter">@${post.author}</p>
+                                        </div>
+                                        <div class="flex items-center space-x-2 mt-1.5">
+                                            <span class="status-pill ${post.status === 'Pending' ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600'}">${post.status}</span>
+                                            <span class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">• ${post.location}</span>
+                                        </div>
                                     </div>
                                 </div>
-                                <i data-lucide="more-horizontal" class="w-5 h-5 text-slate-400"></i>
                             </div>
-                            ${renderImageGrid(post)}
-                            <div class="px-4 py-4">
-                                <div class="flex justify-between items-center mb-4">
-                                    <div class="flex items-center space-x-5">
-                                        <i data-lucide="heart" id="heart-${post.id}" class="action-icon w-7 h-7 ${isLiked ? 'text-red-500 fill-red-500' : 'text-slate-900'}" onclick='handleUpvote(${JSON.stringify(post)})'></i>
-                                        <i data-lucide="message-circle" class="action-icon w-7 h-7 text-slate-900" onclick="window.location.hash = '#/post/${post.id}'"></i>
-                                        <i data-lucide="send" class="action-icon w-7 h-7 text-slate-900"></i>
-                                    </div>
-                                    <i data-lucide="bookmark" class="action-icon w-7 h-7 text-slate-900"></i>
+                            <div class="civic-grid ${imgs.length >= 4 ? 'grid-4' : `grid-${imgs.length}`}" onclick="window.handlePostGallery(${post.id}, 0)">
+                                ${imgs.slice(0, 4).map((img, idx) => `<div class="relative w-full h-full"><img src="${img}" class="grid-item">${idx === 3 && imgs.length > 4 ? `<div class="absolute inset-0 bg-black/60 flex items-center justify-center text-white font-black text-xl">+${imgs.length - 4}</div>` : ''}</div>`).join('')}
+                            </div>
+                            <div class="p-8">
+                                <p class="text-[16px] leading-relaxed text-slate-700 font-medium mb-8">${post.description}</p>
+                                <div class="grid grid-cols-4 gap-2 border-t border-slate-50 pt-8">
+                                    <button id="heart-${post.id}" onclick="window.handlePostUpvote(${post.id})" class="btn-action ${isLiked ? 'active' : ''}"><i data-lucide="shield-alert" class="w-5 h-5 mr-2"></i><span id="vote-count-${post.id}">${post.upvotes_count || 0}</span></button>
+                                    <button onclick="window.location.hash = '#/post/${post.id}'" class="btn-action"><i data-lucide="message-square" class="w-5 h-5 mr-2"></i><span>${post.comments?.length || 0}</span></button>
+                                    <button id="save-${post.id}" onclick="window.handlePostSave(${post.id})" class="btn-action ${isSaved ? 'saved' : ''}"><i data-lucide="bookmark" class="w-5 h-5"></i></button>
+                                    <button onclick="window.handleShare(${post.id})" class="btn-action"><i data-lucide="share-2" class="w-5 h-5"></i></button>
                                 </div>
-                                <p class="text-[14px] font-bold mb-2 text-slate-900" id="vote-count-${post.id}">${post.upvotes_count || 0} citizen votes</p>
-                                <p class="text-[14px] leading-relaxed text-slate-800"><span class="font-bold mr-1 text-slate-900">@${post.author}</span>${post.description}</p>
-                                <div class="border-l-2 border-slate-100 pl-4 space-y-2 mt-4">${(post.comments || []).slice(-2).map(com => `<p class="text-[12px] text-slate-600"><span class="font-bold text-slate-900">@${com.username}</span> ${com.content}</p>`).join('')}</div>
-                                <p class="text-[13px] text-slate-400 mt-2 cursor-pointer font-medium" onclick="window.location.hash = '#/post/${post.id}'">${(post.comments?.length || 0) > 2 ? `View all ${post.comments.length} voices...` : 'Add voice...'}</p>
                             </div>
-                        </article>
-                    `}).join('')}
+                        </article> `}).join('')}
                 </div>`;
+            lucide.createIcons();
         }
 
-        function renderMap(c) {
-            c.innerHTML = `<div id="map-container" class="bg-slate-50"></div>`;
-            setTimeout(() => {
-                const map = L.map('map-container').setView([20.5937, 78.9629], 5);
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-                state.posts.forEach(post => {
-                    if (post.latitude && post.longitude) {
-                        const images = parseImages(post.image);
-                        const marker = L.marker([post.latitude, post.longitude]).addTo(map);
-                        marker.bindPopup(`<div class="flex flex-col bg-white"><div class="image-grid grid-2 h-32 mb-2">${images.slice(0, 2).map((img, idx) => `<img src="${img}" onclick="window.openGallery(${post.id}, ${idx})" class="grid-item cursor-pointer hover:opacity-80">`).join('')}</div><div class="p-3"><p class="text-[10px] font-bold text-blue-600 uppercase mb-1">#${post.category}</p><p class="text-xs font-bold text-slate-800 line-clamp-2 leading-snug">${post.description}</p><button onclick="window.location.hash = '#/post/${post.id}'" class="mt-3 w-full py-2 bg-blue-600 text-white text-[10px] font-black uppercase rounded shadow-lg transition-transform active:scale-95">Open Report</button></div></div>`);
-                    }
-                });
-                if (state.currentLat) map.setView([state.currentLat, state.currentLng], 12);
-            }, 100);
-        }
+        async function renderPostDetail(c, id) {
+            const post = state.posts.find(p => p.id == id);
+            if (!post) return window.location.hash = '#/feed';
+            const { data: comments } = await sb.from('comments').select('*').eq('post_id', post.id).order('created_at', { ascending: true });
+            const images = parseImages(post.image);
+            const isLiked = state.myLikes.includes(post.id);
+            const isSaved = state.mySaves.includes(post.id);
 
-        function renderCreate(c) {
             c.innerHTML = `
-                <div class="flex flex-col h-full bg-white page-transition md:mt-4 md:border md:rounded-lg">
-                    <header class="px-4 py-4 border-b flex justify-between items-center"><button onclick="window.history.back()" class="text-sm font-bold text-slate-500">Cancel</button><h2 class="text-sm font-bold uppercase tracking-widest text-slate-900 text-center text-[10px]">Broadcast</h2><button form="create-form" type="submit" id="submit-post-btn" class="text-blue-500 text-sm font-bold disabled:opacity-50" ${state.isUploading ? 'disabled' : ''}>Share</button></header>
-                    <form id="create-form" onsubmit="handleCreate(event)" class="flex-1 p-6 space-y-6">
-                        <div class="flex space-x-4 items-start pb-6 border-b border-slate-50">
-                            <div class="w-24 h-24 bg-slate-50 rounded-lg flex items-center justify-center shrink-0 border border-slate-100 relative upload-wrapper shadow-inner" id="post-img-preview"><i data-lucide="camera" class="text-slate-300"></i><input type="file" id="c-file" accept="image/*" multiple required onchange="handleImageSelection(event, 'post-img-preview', 'submit-post-btn')"></div>
-                            <textarea id="c-desc" placeholder="Describe the issue..." required class="flex-1 text-[15px] p-1 outline-none border-none resize-none h-32 font-medium text-slate-900"></textarea>
+                <div class="bg-white rounded-[40px] border border-slate-100 overflow-hidden shadow-sm page-transition">
+                    <header class="p-8 border-b border-slate-50 flex items-center space-x-6 sticky top-0 bg-white/90 backdrop-blur-md z-10">
+                        <button onclick="window.history.back()" class="p-2 hover:bg-slate-50 rounded-xl transition-colors"><i data-lucide="arrow-left" class="w-6 h-6 text-slate-900"></i></button>
+                        <h2 class="text-[10px] font-black uppercase tracking-widest text-slate-900">National Case Documentation</h2>
+                    </header>
+                    <div class="p-4 bg-slate-50 aspect-video flex overflow-x-auto snap-x snap-mandatory no-scrollbar">
+                        ${images.map((img, i) => `<img src="${img}" onclick="window.handlePostGallery(${post.id}, i)" class="w-full h-full object-contain snap-center flex-shrink-0 cursor-zoom-in">`).join('')}
+                    </div>
+                    <div class="p-8 border-b border-slate-50">
+                        <div class="flex items-start space-x-4 mb-8">
+                            <div class="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center font-black uppercase text-xs italic">${post.author[0]}</div>
+                            <div class="flex-1">
+                                <div class="flex items-center mb-1">
+                                     <div class="w-5 h-5 rounded-full overflow-hidden bg-slate-200 mr-2 flex items-center justify-center text-[7px] font-black">
+                                         ${post.author_avatar ? `<img src="${post.author_avatar}" class="w-full h-full object-cover">` : '@'}
+                                     </div>
+                                     <p class="text-sm font-black text-slate-900 uppercase italic tracking-tighter">@${post.author}</p>
+                                </div>
+                                <p class="text-[16px] leading-relaxed text-slate-800 font-medium">${post.description}</p>
+                            </div>
                         </div>
-                        <div class="space-y-4 pt-4">
-                            <div class="flex items-center border-b pb-2"><i data-lucide="map-pin" class="w-4 h-4 text-slate-300 mr-3"></i><input id="c-loc" type="text" placeholder="Location" required class="w-full text-sm font-bold text-blue-600 outline-none"></div>
-                            <div class="flex items-center border-b pb-2"><i data-lucide="tag" class="w-4 h-4 text-slate-300 mr-3"></i><select id="c-cat" class="w-full text-sm font-bold uppercase outline-none text-slate-700 bg-transparent">${state.categories.map(cat => `<option>${cat}</option>`).join('')}</select></div>
+                        <div class="grid grid-cols-4 gap-2">
+                            <button id="heart-dt-${post.id}" onclick="window.handlePostUpvote(${post.id})" class="btn-action ${isLiked ? 'active' : ''}"><i data-lucide="shield-alert" class="w-5 h-5 mr-2"></i><span id="vote-count-dt-${post.id}">${post.upvotes_count || 0}</span></button>
+                            <div class="btn-action"><i data-lucide="message-square" class="w-5 h-5 mr-2"></i><span>${comments?.length || 0}</span></div>
+                            <button id="save-dt-${post.id}" onclick="window.handlePostSave(${post.id})" class="btn-action ${isSaved ? 'saved' : ''}"><i data-lucide="bookmark" class="w-5 h-5"></i></button>
+                            <button onclick="window.handleShare(${post.id})" class="btn-action"><i data-lucide="share-2" class="w-5 h-5"></i></button>
                         </div>
+                    </div>
+                    <div class="p-8 space-y-6 bg-slate-50/20 min-h-[200px]">
+                        ${(comments || []).map(com => `
+                            <div class="flex items-start space-x-4 animate-in slide-in-from-bottom-2 duration-300">
+                                <div class="w-8 h-8 rounded-lg bg-white border border-slate-100 flex items-center justify-center font-bold text-[10px] text-slate-400 uppercase">@</div>
+                                <div class="flex-1 bg-white p-5 rounded-3xl border border-slate-100 shadow-sm text-sm font-medium">
+                                    <p class="text-slate-700 leading-relaxed"><span class="font-black text-slate-900 mr-2 italic tracking-tighter">@${com.username}</span>${com.content}</p>
+                                </div>
+                            </div>`).join('')}
+                    </div>
+                    <form onsubmit="submitComment(event, ${post.id})" class="p-8 border-t border-slate-50 bg-white flex items-center space-x-4">
+                        <input name="comment" placeholder="Add community context..." required class="flex-1 bg-slate-50 p-5 rounded-3xl border-none outline-none font-bold text-sm">
+                        <button type="submit" class="bg-blue-600 text-white p-5 rounded-3xl shadow-lg transition-transform active:scale-95"><i data-lucide="send" class="w-6 h-6"></i></button>
                     </form>
                 </div>`;
             lucide.createIcons();
@@ -607,146 +464,290 @@
                 const { data } = await sb.from('profiles').select('*').eq('username', username).single();
                 if (data) profile = data; else { window.location.hash = '#/feed'; return; }
             }
+
+            const [{ count: followersCount }, { count: followingCount }] = await Promise.all([
+                sb.from('follows').select('*', { count: 'exact', head: true }).eq('following_id', profile.id),
+                sb.from('follows').select('*', { count: 'exact', head: true }).eq('follower_id', profile.id)
+            ]);
+
+            const isFollowing = state.myFollows.includes(profile.id);
             const userPosts = state.posts.filter(p => p.author === profile.username);
-            c.innerHTML = `<div class="flex flex-col h-full bg-white overflow-y-auto no-scrollbar md:mt-4"><div class="px-6 py-10 flex flex-col border-b md:border md:rounded-t-lg"><div class="flex items-center justify-between mb-6"><div class="w-20 h-20 rounded-full bg-slate-900 text-white flex items-center justify-center text-4xl font-bold uppercase overflow-hidden">${profile.avatar_url ? `<img src="${profile.avatar_url}" class="w-full h-full object-cover">` : profile.username[0]}</div><div class="flex flex-1 justify-around text-center px-6"><div><p class="font-bold text-lg leading-none">${userPosts.length}</p><p class="text-[12px] text-slate-500 mt-1 font-bold uppercase text-[8px]">Reports</p></div><div><p class="font-bold text-lg leading-none">${userPosts.reduce((a,b) => a + (b.upvotes_count || 0), 0)}</p><p class="text-[12px] text-slate-500 mt-1 font-bold uppercase text-[8px]">Impact</p></div>${isOwnProfile ? `<button onclick="handleLogout()" class="p-2 border rounded-full text-slate-400 hover:bg-slate-50"><i data-lucide="log-out" class="w-5 h-5"></i></button>` : ''}</div></div><div class="space-y-1 mb-4"><h2 class="text-xl font-bold text-slate-900">${profile.display_name || profile.username}</h2><p class="text-blue-500 text-sm font-bold tracking-tight">@${profile.username}</p><p class="text-sm text-slate-600 mt-2 font-medium">${profile.bio || 'Monitoring National Progress'}</p></div><div class="flex flex-wrap mb-4">${profile.twitter ? `<a href="https://twitter.com/${profile.twitter}" target="_blank" class="social-chip"><i data-lucide="twitter" class="w-3 h-3 mr-2"></i>Twitter</a>` : ''}${profile.instagram ? `<a href="https://instagram.com/${profile.instagram}" target="_blank" class="social-chip"><i data-lucide="instagram" class="w-3 h-3 mr-2"></i>Instagram</a>` : ''}${profile.website ? `<a href="${profile.website.startsWith('http') ? profile.website : 'https://'+profile.website}" target="_blank" class="social-chip"><i data-lucide="globe" class="w-3 h-3 mr-2"></i>Website</a>` : ''}</div>${isOwnProfile ? `<button onclick="window.location.hash='#/edit-profile'" class="w-full py-2 bg-slate-100 rounded-lg text-sm font-bold text-slate-900 hover:bg-slate-200">Edit Profile</button>` : `<button onclick="handleFollow('${profile.username}')" class="w-full py-2 bg-blue-500 text-white rounded-lg text-sm font-bold">Connect</button>`}</div><div class="grid grid-cols-3 gap-[2px] bg-slate-100 md:border md:rounded-b-lg overflow-hidden">${userPosts.map(p => `<div class="aspect-square bg-slate-50 cursor-pointer hover:opacity-90" onclick="window.location.hash='#/post/${p.id}'"><img src="${parseImages(p.image)[0]}" class="w-full h-full object-cover"></div>`).join('')}</div></div>`;
+            const savedPosts = state.posts.filter(p => state.mySaves.includes(p.id));
+            const displayPosts = state.profileTab === 'reports' ? userPosts : savedPosts;
+
+            c.innerHTML = `
+                <div class="bg-white rounded-[40px] border border-slate-100 overflow-hidden shadow-sm page-transition">
+                    <div class="px-8 py-12 flex flex-col items-center text-center">
+                        <div class="avatar-lg mb-6">${profile.avatar_url ? `<img src="${profile.avatar_url}" class="w-full h-full object-cover">` : `<div class="w-full h-full bg-slate-900 text-white flex items-center justify-center font-black text-3xl uppercase italic">${profile.username[0]}</div>`}</div>
+                        <h2 class="text-2xl font-black text-slate-900 tracking-tighter uppercase italic">${profile.display_name || profile.username}</h2>
+                        <p class="text-blue-600 font-bold text-xs mt-1 tracking-widest">@${profile.username}</p>
+                        <p class="text-sm text-slate-500 font-medium mt-4 max-w-sm">${profile.bio || 'National Action Monitor'}</p>
+                        
+                        <div class="flex space-x-6 mt-10 pb-10 border-b border-slate-50 w-full justify-center">
+                            <div class="cursor-pointer group" onclick="window.location.hash='#/u/${profile.username}/followers'"><p class="font-black text-xl text-slate-900 group-hover:text-blue-600 transition-colors">${followersCount || 0}</p><p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Followers</p></div>
+                            <div class="cursor-pointer group" onclick="window.location.hash='#/u/${profile.username}/following'"><p class="font-black text-xl text-slate-900 group-hover:text-blue-600 transition-colors">${followingCount || 0}</p><p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Following</p></div>
+                            <div><p class="font-black text-xl text-slate-900">${userPosts.length}</p><p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Reports</p></div>
+                        </div>
+
+                        <div class="w-full pt-10 px-4 flex flex-col">
+                            ${isOwnProfile ? `<button onclick="window.location.hash='#/edit-profile'" class="w-full py-5 bg-slate-900 text-white rounded-[24px] font-black text-[10px] uppercase shadow-2xl">Edit Identity</button>` : `<button id="follow-btn" onclick="window.handleFollow('${profile.id}')" class="w-full py-5 ${isFollowing ? 'bg-slate-100 text-slate-600' : 'bg-blue-600 text-white'} rounded-[24px] font-black text-[10px] uppercase shadow-xl transition-all">${isFollowing ? 'Connected' : 'Connect'}</button>`}
+                        </div>
+                    </div>
+                    <div class="flex border-t border-slate-50">
+                        <button onclick="state.profileTab='reports'; renderProfile(document.getElementById('viewport'), '${username || ''}')" class="flex-1 profile-tab ${state.profileTab==='reports'?'active':''}">My Reports</button>
+                        ${isOwnProfile ? `<button onclick="state.profileTab='saved'; renderProfile(document.getElementById('viewport'), '${username || ''}')" class="flex-1 profile-tab ${state.profileTab==='saved'?'active':''}">Saved Archives</button>` : ''}
+                    </div>
+                    <div class="grid grid-cols-3 gap-1 bg-slate-50 p-1">
+                        ${displayPosts.map(p => `<div class="aspect-square bg-white overflow-hidden cursor-pointer" onclick="window.location.hash='#/post/${p.id}'"><img src="${parseImages(p.image)[0]}" class="w-full h-full object-cover hover:scale-110 transition-all"></div>`).join('')}
+                    </div>
+                </div>`;
             lucide.createIcons();
         }
 
-        function renderEditProfile(c) {
+        async function renderFollowList(c, username, type) {
+            const { data: profile } = await sb.from('profiles').select('id, username').eq('username', username).single();
+            if (!profile) return window.location.hash = '#/feed';
+            const { data: list } = await sb.from('follows')
+                .select(`profiles:${type === 'followers' ? 'follower_id' : 'following_id'}(*)`)
+                .eq(type === 'followers' ? 'following_id' : 'follower_id', profile.id);
+
             c.innerHTML = `
-                <div class="flex flex-col h-full bg-white page-transition md:mt-4 md:border md:rounded-lg">
-                    <header class="px-4 py-4 border-b flex justify-between items-center"><button onclick="window.history.back()" class="text-sm font-bold text-slate-500">Cancel</button><h2 class="text-sm font-bold uppercase tracking-widest text-slate-900 text-[10px]">Edit Identity</h2><button form="edit-profile-form" type="submit" id="save-profile-btn" class="text-blue-500 text-sm font-bold disabled:opacity-50" ${state.isUploading ? 'disabled' : ''}>Update</button></header>
-                    <form id="edit-profile-form" onsubmit="handleUpdateProfile(event)" class="flex-1 p-6 space-y-6 overflow-y-auto no-scrollbar pb-20">
-                        <div class="flex flex-col items-center space-y-4">
-                            <div class="avatar-lg rounded-full upload-wrapper overflow-hidden bg-slate-100 flex items-center justify-center border border-slate-100 shadow-inner" id="avatar-preview">${state.user.avatar_url ? `<img src="${state.user.avatar_url}" class="w-full h-full object-cover rounded-full">` : `<i data-lucide="user" class="text-slate-300"></i>`}<input type="file" id="p-avatar" accept="image/*" onchange="handleImageSelection(event, 'avatar-preview', 'save-profile-btn')"></div>
-                            <p class="text-blue-500 text-[10px] font-black uppercase tracking-widest">Change Photo</p>
+                <div class="bg-white rounded-[40px] border border-slate-100 overflow-hidden shadow-sm page-transition">
+                    <header class="p-10 border-b border-slate-50 flex items-center space-x-6 sticky top-0 bg-white/90 backdrop-blur-md z-10">
+                        <button onclick="window.history.back()" class="p-3 hover:bg-slate-50 rounded-2xl transition-all"><i data-lucide="arrow-left" class="w-6 h-6 text-slate-900"></i></button>
+                        <h2 class="text-[10px] font-black uppercase tracking-widest text-slate-900">${type} - @${username}</h2>
+                    </header>
+                    <div class="p-4 space-y-4">
+                        ${(list || []).map(item => {
+                            const u = item.profiles;
+                            return `<div class="flex items-center justify-between p-5 bg-slate-50 rounded-[28px] cursor-pointer" onclick="window.location.hash='#/u/${u.username}'"><div class="flex items-center space-x-4"><div class="w-12 h-12 rounded-[14px] overflow-hidden bg-slate-200">${u.avatar_url ? `<img src="${u.avatar_url}" class="w-full h-full object-cover">` : `<div class="w-full h-full flex items-center justify-center font-black text-slate-400 uppercase">${u.username[0]}</div>`}</div><div><p class="text-sm font-black text-slate-900">@${u.username}</p><p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">${u.display_name || 'Citizen'}</p></div></div><i data-lucide="arrow-right" class="text-slate-300 w-5 h-5"></i></div>`;
+                        }).join('')}
+                    </div>
+                </div>`;
+            lucide.createIcons();
+        }
+
+        function renderMap(c) {
+            c.innerHTML = `<div id="map-container"></div>`;
+            setTimeout(() => {
+                const map = L.map('map-container', { zoomControl: false }).setView([state.currentLat, state.currentLng], 6);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+                
+                const groupedPosts = {};
+                state.posts.forEach(p => {
+                    if (p.latitude && p.longitude) {
+                        const key = `${p.latitude},${p.longitude}`;
+                        if (!groupedPosts[key]) groupedPosts[key] = [];
+                        groupedPosts[key].push(p);
+                    }
+                });
+
+                Object.keys(groupedPosts).forEach(key => {
+                    const group = groupedPosts[key];
+                    group.sort((a,b) => (b.upvotes_count || 0) - (a.upvotes_count || 0));
+                    const top5 = group.slice(0, 5);
+                    const avgVotes = top5.reduce((a,b) => a + (b.upvotes_count || 0), 0) / top5.length;
+                    const color = avgVotes > 50 ? '#ef4444' : avgVotes > 10 ? '#8b5cf6' : '#3b82f6';
+                    const [lat, lng] = key.split(',').map(Number);
+
+                    const customMarker = L.divIcon({
+                        className: 'custom-pin-icon',
+                        html: `<div style="color:${color}; filter: drop-shadow(0 4px 4px rgba(0,0,0,0.25))"><svg viewBox="0 0 24 24" width="36" height="36" stroke="currentColor" stroke-width="3" fill="white" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-map-pin"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3" fill="currentColor"/></svg></div>`,
+                        iconSize: [36, 36], iconAnchor: [18, 36]
+                    });
+
+                    L.marker([lat, lng], { icon: customMarker }).addTo(map).bindPopup(`
+                        <div class="flex flex-col bg-white overflow-hidden rounded-2xl w-56 shadow-2xl border border-slate-100 p-2">
+                            <h3 class="font-black text-[10px] uppercase text-slate-400 mb-3 px-2 tracking-widest">Top Area Reports (${group.length})</h3>
+                            <div class="space-y-3">
+                                ${top5.map(p => `
+                                    <div class="flex items-center space-x-3 p-2 hover:bg-slate-50 rounded-xl cursor-pointer" onclick="window.location.hash='#/post/${p.id}'">
+                                        <img src="${parseImages(p.image)[0]}" class="w-10 h-10 object-cover rounded-lg shadow-sm">
+                                        <div class="flex-1 overflow-hidden">
+                                            <p class="text-[9px] font-black text-blue-600 uppercase">#${p.category}</p>
+                                            <p class="text-[10px] font-bold text-slate-800 truncate">${p.description}</p>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>`);
+                });
+            }, 100);
+        }
+
+        function renderCreate(c) {
+            c.innerHTML = `
+                <div class="bg-white rounded-[40px] shadow-sm border border-slate-100 overflow-hidden page-transition">
+                    <header class="p-10 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
+                        <h2 class="text-xl font-black text-slate-900 italic tracking-tighter uppercase italic">Create Report</h2>
+                        <button form="create-form" type="submit" id="submit-post-btn" class="bg-blue-700 text-white px-10 py-4 rounded-3xl font-black text-xs uppercase tracking-widest shadow-xl disabled:opacity-50">Transmit</button>
+                    </header>
+                    <form id="create-form" onsubmit="handleCreate(event)" class="p-10 space-y-10">
+                        <div class="flex flex-col items-center justify-center">
+                            <div class="upload-area w-full group relative" id="post-img-preview-container">
+                                <div id="upload-placeholder" class="flex flex-col items-center">
+                                    <i data-lucide="camera" class="w-12 h-12 text-slate-300 group-hover:text-blue-500 transition-colors mb-2"></i>
+                                    <span class="text-[10px] font-black uppercase text-slate-400 group-hover:text-blue-600">Select Evidence Images</span>
+                                </div>
+                                <div id="multi-preview-grid" class="hidden grid grid-cols-3 gap-2 w-full h-full absolute inset-0 p-4 bg-white z-10 overflow-y-auto"></div>
+                                <div id="upload-overlay-layer" class="hidden upload-overlay z-20">
+                                     <div class="w-10 h-10 border-4 border-white/20 border-t-white rounded-full animate-spin mb-4"></div>
+                                     <span class="text-[10px] font-black uppercase tracking-[3px]">Syncing Evidence...</span>
+                                </div>
+                                <input type="file" id="c-file" class="absolute inset-0 opacity-0 cursor-pointer z-30" accept="image/*" multiple onchange="handleImageSelection(event, 'post-img-preview-container', 'submit-post-btn')">
+                            </div>
                         </div>
-                        <div class="space-y-4">
-                            <div class="border-b pb-2"><label class="text-[8px] text-slate-400 font-black uppercase tracking-widest">Display Name</label><input id="p-display-name" type="text" value="${state.user.display_name || ''}" placeholder="Real Name" class="w-full text-sm font-medium outline-none py-1 text-slate-900"></div>
-                            <div class="border-b pb-2"><label class="text-[8px] text-slate-400 font-black uppercase tracking-widest">Bio</label><textarea id="p-bio" rows="2" class="w-full text-sm font-medium outline-none py-1 resize-none text-slate-900">${state.user.bio || ''}</textarea></div>
-                            <h3 class="text-[8px] font-black text-slate-300 uppercase tracking-widest mt-8 mb-2 text-center">Social Hub</h3>
-                            <div class="border-b pb-2 flex items-center"><i data-lucide="twitter" class="w-3 h-3 text-slate-300 mr-3"></i><input id="p-twitter" type="text" value="${state.user.twitter || ''}" placeholder="X handle" class="w-full text-sm font-medium outline-none text-slate-900"></div>
-                            <div class="border-b pb-2 flex items-center"><i data-lucide="instagram" class="w-3 h-3 text-slate-300 mr-3"></i><input id="p-instagram" type="text" value="${state.user.instagram || ''}" placeholder="Instagram handle" class="w-full text-sm font-medium outline-none text-slate-900"></div>
-                            <div class="border-b pb-2 flex items-center"><i data-lucide="globe" class="w-3 h-3 text-slate-300 mr-3"></i><input id="p-website" type="text" value="${state.user.website || ''}" placeholder="Website" class="w-full text-sm font-medium outline-none text-slate-900"></div>
+                        <div class="space-y-8">
+                            <textarea id="c-desc" placeholder="Evidence details and context..." required class="w-full text-xl p-4 outline-none border-none resize-none h-40 font-bold text-slate-900 bg-slate-50/30 rounded-3xl placeholder:text-slate-300 shadow-inner"></textarea>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="bg-slate-50 p-6 rounded-[32px] border border-slate-100 shadow-sm"><label class="block text-[10px] text-slate-400 font-black uppercase mb-3">Case Location</label><input id="c-loc" type="text" placeholder="Area, City" required class="w-full bg-transparent border-none outline-none font-black text-blue-600"></div>
+                                <div class="bg-slate-50 p-6 rounded-[32px] border border-slate-100 shadow-sm"><label class="block text-[10px] text-slate-400 font-black uppercase mb-3">Authority Type</label><select id="c-cat" class="w-full bg-transparent border-none outline-none font-black text-slate-700">${state.categories.map(cat => `<option>${cat}</option>`).join('')}</select></div>
+                            </div>
                         </div>
                     </form>
                 </div>`;
             lucide.createIcons();
         }
 
-        // --- 7. LOGIC HANDLERS ---
+        // --- 6. NAVIGATION ENGINE ---
 
-        async function handleLogout() {
-            await sb.auth.signOut();
-            state.user = null;
-            state.myLikes = [];
-            window.location.hash = '#/auth';
-        }
+        async function handleNavigation() {
+            const viewport = document.getElementById('viewport');
+            const hash = window.location.hash || '#/feed';
+            const parts = hash.split('/');
+            const route = parts[1] || 'feed';
+            const param = parts[2];
+            const sub = parts[3];
 
-        async function handleFollow(targetUser) {
-            if (!state.user) { window.location.hash = '#/auth'; return; }
-            showToast(`Connected with @${targetUser}`);
-        }
+            const viewKey = route + (param || '') + (sub || '') + (route === 'auth' ? state.authMode : '');
+            if (state.currentView === viewKey && route !== 'feed') return; 
+            state.currentView = viewKey;
 
-        async function handleUpvote(post) {
-            if (!state.user) { window.location.hash = '#/auth'; return; }
-            const heartEl = document.getElementById(`heart-${post.id}`);
-            const countEl = document.getElementById(`vote-count-${post.id}`);
-            const isLiked = state.myLikes.includes(post.id);
-            const currentCount = parseInt(countEl?.innerText || 0);
-            if (isLiked) {
-                state.myLikes = state.myLikes.filter(id => id !== post.id);
-                heartEl.className = "action-icon w-7 h-7 text-slate-900";
-                countEl.innerText = `${Math.max(0, currentCount - 1)} citizen votes`;
-                await sb.from('post_upvotes').delete().match({ post_id: post.id, user_id: state.user.uid });
+            if (['create', 'notifications', 'edit-profile'].includes(route) && !state.user) { window.location.hash = '#/auth'; return; }
+            document.querySelectorAll('.nav-link, .nav-btn').forEach(btn => btn.classList.toggle('active', btn.getAttribute('data-route') === route));
+            window.scrollTo(0, 0);
+
+            if (route === 'u' && (sub === 'followers' || sub === 'following')) {
+                await renderFollowList(viewport, param, sub);
             } else {
-                state.myLikes.push(post.id);
-                heartEl.className = "action-icon w-7 h-7 text-red-500 fill-red-500";
-                countEl.innerText = `${currentCount + 1} citizen votes`;
-                await sb.from('post_upvotes').insert({ post_id: post.id, user_id: state.user.uid });
+                switch(route) {
+                    case 'feed': renderFeed(viewport); break;
+                    case 'auth': renderAuth(viewport); break;
+                    case 'create': renderCreate(viewport); break;
+                    case 'u': await renderProfile(viewport, param); break;
+                    case 'edit-profile': renderEditProfile(viewport); break;
+                    case 'notifications': renderNotifications(viewport); break;
+                    case 'post': await renderPostDetail(viewport, param); break;
+                    case 'search': renderSearch(viewport); break;
+                    case 'map': renderMap(viewport); break;
+                    default: window.location.hash = '#/feed';
+                }
+            }
+            lucide.createIcons();
+        }
+
+        async function init() {
+            const { data: { session } } = await sb.auth.getSession();
+            await syncUser(session?.user);
+
+            sb.auth.onAuthStateChange(async (event, session) => {
+                await syncUser(session?.user);
+                if (event === 'SIGNED_IN' && window.location.hash.includes('auth')) window.location.hash = '#/feed';
+                else if (event === 'SIGNED_OUT') window.location.hash = '#/auth';
+            });
+
+            sb.channel('public:posts').on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, async () => {
+                await fetchPosts(); if (window.location.hash === '#/feed') renderFeed(document.getElementById('viewport'));
+            }).subscribe();
+            
+            await fetchPosts();
+            window.addEventListener('hashchange', handleNavigation);
+            handleNavigation();
+
+            if ("geolocation" in navigator) navigator.geolocation.getCurrentPosition((p) => { state.currentLat = p.coords.latitude; state.currentLng = p.coords.longitude; }, () => {});
+        }
+
+        // Logic for Create Report Preview
+        function handleImageSelection(event, containerId, buttonId) {
+            const files = Array.from(event.target.files || []);
+            if (!files.length) return;
+            const grid = document.getElementById('multi-preview-grid');
+            const placeholder = document.getElementById('upload-placeholder');
+            const overlay = document.getElementById('upload-overlay-layer');
+            
+            if (grid) {
+                grid.innerHTML = ''; grid.classList.remove('hidden');
+                files.forEach(file => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const img = document.createElement('img');
+                        img.className = "w-full h-24 object-cover rounded-xl border border-slate-100 shadow-sm";
+                        img.src = e.target.result;
+                        grid.appendChild(img);
+                    };
+                    reader.readAsDataURL(file);
+                });
+            }
+            if (placeholder) placeholder.style.display = 'none';
+            if (overlay) overlay.classList.remove('hidden');
+            handlePostImages(files, overlay, buttonId);
+        }
+
+        async function handlePostImages(files, overlayEl, bId) {
+            const btn = document.getElementById(bId);
+            state.isUploading = true; if (btn) btn.disabled = true;
+            try {
+                const uploadPromises = files.map(file => {
+                    const fd = new FormData(); fd.append('image', file);
+                    return fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, { method: 'POST', body: fd })
+                        .then(res => res.json()).then(d => d.success ? d.data.url : null);
+                });
+                const urls = await Promise.all(uploadPromises);
+                state.tempImageUrls = urls.filter(u => u !== null);
+                showToast("Evidence Synced to Cloud");
+            } finally {
+                state.isUploading = false; if (btn) btn.disabled = false;
+                if (overlayEl) overlayEl.classList.add('hidden');
             }
         }
 
         async function handleCreate(e) {
             e.preventDefault();
             const btn = document.getElementById('submit-post-btn');
-            if (!state.tempImageUrls.length) return showToast("Add photos");
-            btn.disabled = true; btn.innerText = "...";
+            if (!state.tempImageUrls.length) return showToast("Add photos first");
+            btn.disabled = true; btn.innerText = "Transmitting...";
             try {
-                const postData = { author: state.user.username, author_id: state.user.uid, author_avatar: state.user.avatar_url || null, image: JSON.stringify(state.tempImageUrls), category: document.getElementById('c-cat').value, location: document.getElementById('c-loc').value, description: document.getElementById('c-desc').value, status: 'Pending', latitude: state.currentLat, longitude: state.currentLng };
-                await sb.from('posts').insert([postData]);
-                showToast("Broadcast shared!"); window.location.hash = '#/feed';
-            } catch (err) { alert(err.message); btn.disabled = false; }
+                const { error } = await sb.from('posts').insert([{ 
+                    author: state.user.username, author_id: state.user.id, author_avatar: state.user.avatar_url || null, 
+                    image: JSON.stringify(state.tempImageUrls), category: document.getElementById('c-cat').value,
+                    location: document.getElementById('c-loc').value, description: document.getElementById('c-desc').value,
+                    status: 'Pending', latitude: state.currentLat, longitude: state.currentLng 
+                }]);
+                if (error) throw error;
+                showToast("Case Transmitted Successfully"); window.location.hash = '#/feed';
+            } catch (err) { alert(err.message); btn.disabled = false; btn.innerText = "Transmit"; }
         }
+
+        async function submitComment(e, pId) { e.preventDefault(); const c = e.target.comment.value.trim(); if (!c || !state.user) return; await sb.from('comments').insert({ post_id: pId, user_id: state.user.id, username: state.user.username, content: c }); e.target.reset(); await fetchPosts(); renderPostDetail(document.getElementById('viewport'), pId); }
+        async function handleAuth(e) { e.preventDefault(); const email = document.getElementById('email').value; const password = document.getElementById('password').value; const btn = e.target.querySelector('button'); btn.disabled = true; try { if (state.authMode === 'signup') { const u = document.getElementById('auth-user').value; await sb.auth.signUp({ email, password, options: { data: { username: u } } }); showToast("Check Inbox"); } else { await sb.auth.signInWithPassword({ email, password }); } } catch(err) { showToast(err.message); btn.disabled = false; } }
 
         async function handleUpdateProfile(e) {
             e.preventDefault();
-            const btn = document.getElementById('save-profile-btn');
-            btn.disabled = true; btn.innerText = "...";
+            const btn = document.getElementById('save-profile-btn'); btn.disabled = true;
             try {
                 const { error } = await sb.from('profiles').update({ 
-                    display_name: document.getElementById('p-display-name').value,
-                    bio: document.getElementById('p-bio').value,
-                    avatar_url: state.tempImageUrls[0] || state.user.avatar_url,
-                    twitter: document.getElementById('p-twitter').value,
-                    instagram: document.getElementById('p-instagram').value,
-                    website: document.getElementById('p-website').value,
-                    updated_at: new Date() 
-                }).eq('id', state.user.uid);
+                    display_name: document.getElementById('p-display-name').value, bio: document.getElementById('p-bio').value,
+                    avatar_url: state.tempImageUrls[0] || state.user.avatar_url, updated_at: new Date() 
+                }).eq('id', state.user.id);
                 if (error) throw error;
-                showToast("Identity updated"); window.location.hash = '#/profile';
+                showToast("Identity Refined"); window.location.hash = '#/u';
             } catch (err) { alert(err.message); btn.disabled = false; }
         }
 
-        function showToast(m) { const c = document.getElementById('toast-container'); if (!c) return; const t = document.createElement('div'); t.className = "bg-black text-white text-[10px] font-black uppercase tracking-widest px-6 py-3 rounded-full shadow-2xl mb-2 text-center animate-in slide-in-from-bottom-4"; t.innerText = m; c.appendChild(t); setTimeout(() => t.remove(), 3000); }
-        function updateGlobalUI() { const authS = document.getElementById('sidebar-auth-zone'); const mobA = document.getElementById('mobile-auth-header'); const sideA = document.getElementById('sidebar-avatar'); const navA = document.getElementById('nav-avatar-circle'); if (state.user) { authS.innerHTML = `<p class="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center px-2">@${state.user.username}</p>`; mobA.innerHTML = `<button onclick="window.location.hash='#/profile'" class="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center text-[10px] font-bold uppercase overflow-hidden shadow-sm">${state.user.avatar_url ? `<img src="${state.user.avatar_url}" class="w-full h-full object-cover">` : state.user.username[0]}</button>`; sideA.innerHTML = state.user.avatar_url ? `<img src="${state.user.avatar_url}" class="w-full h-full object-cover">` : state.user.username[0]; navA.innerHTML = state.user.avatar_url ? `<img src="${state.user.avatar_url}" class="w-full h-full object-cover text-white">` : state.user.username[0]; } else { authS.innerHTML = `<button onclick="window.location.hash='#/auth'" class="btn-blue w-full text-[10px] uppercase tracking-widest font-black">Log In</button>`; mobA.innerHTML = `<i data-lucide="log-in" class="w-6 h-6 text-slate-900" onclick="window.location.hash='#/auth'"></i>`; sideA.innerHTML = `<i data-lucide="user" class="w-4 h-4"></i>`; navA.innerHTML = `<i data-lucide="user" class="w-5 h-5"></i>`; } }
-        async function renderPostDetail(c, id) {
-            const post = state.posts.find(p => p.id == id);
-            if (!post) return window.location.hash = '#/feed';
-            const { data: comments } = await sb.from('comments').select('*').eq('post_id', post.id).order('created_at', { ascending: true });
-            const images = parseImages(post.image);
-            c.innerHTML = `<div class="flex flex-col h-full bg-white page-transition md:mt-4 md:border md:rounded-lg"><header class="px-4 py-4 border-b flex items-center space-x-4 sticky top-0 bg-white z-10"><i data-lucide="arrow-left" class="action-icon w-6 h-6 text-slate-900" onclick="window.history.back()"></i><h2 class="text-[10px] font-black uppercase tracking-widest">Talk</h2></header><div class="flex-1 overflow-y-auto no-scrollbar pb-20"><div class="aspect-square bg-slate-50 flex overflow-x-auto snap-x snap-mandatory">${images.map((img, i) => `<img src="${img}" onclick="window.openGallery(${post.id}, ${i})" class="w-full h-full object-cover snap-center flex-shrink-0 cursor-pointer">`).join('')}</div><div class="p-4 border-b border-slate-50 flex items-start space-x-3"><div class="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-[10px] shrink-0 uppercase">${post.author[0]}</div><div><p class="text-[14px] text-slate-800 leading-snug"><span class="font-bold mr-1 text-slate-900">@${post.author}</span>${post.description}</p><p class="text-[10px] text-slate-400 mt-2 font-bold uppercase tracking-widest">${post.location}</p></div></div><div class="p-4 space-y-6">${(comments || []).map(com => `<div class="flex items-start space-x-3"><div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-[10px] shrink-0 uppercase text-slate-900">${com.username[0]}</div><p class="text-[14px] leading-relaxed text-slate-800 font-medium"><span class="font-bold mr-1 text-slate-900">@${com.username}</span>${com.content}</p></div>`).join('')}</div></div><form onsubmit="submitComment(event, ${post.id}, '${post.author_id}')" class="p-3 border-t bg-white flex items-center space-x-3 fixed bottom-14 w-full md:relative md:bottom-0"><input name="comment" placeholder="Voice out..." required class="flex-1 text-[14px] outline-none border-none py-2 font-medium text-slate-900"><button type="submit" class="text-sm font-bold text-blue-500 action-icon px-2">Post</button></form></div>`;
-            lucide.createIcons();
-        }
-
-        async function submitComment(e, pId, aId) { e.preventDefault(); const c = e.target.comment.value.trim(); if (!c || !state.user) return; await sb.from('comments').insert({ post_id: pId, user_id: state.user.uid, username: state.user.username, content: c }); e.target.reset(); fetchPosts(); handleNavigation(); }
-        function renderSearch(c) { c.innerHTML = '<div class="p-10 text-center bg-white h-full"><h2 class="logo-font text-3xl mb-8 uppercase tracking-tighter text-slate-900 text-center">Discovery</h2><div class="relative max-w-md mx-auto"><i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300"></i><input placeholder="Search regions..." class="w-full pl-12 pr-6 py-4 bg-slate-50 border border-slate-100 rounded-xl text-sm font-medium outline-none"></div><div class="grid grid-cols-2 gap-3 mt-10 max-w-md mx-auto">${state.categories.map(cat => `<div class="p-6 bg-white border border-slate-100 rounded-2xl text-[12px] font-bold uppercase tracking-widest text-slate-400 hover:text-blue-500 hover:border-blue-100 cursor-pointer transition-all shadow-sm text-center">#${cat}</div>`).join("")}</div></div>'; }
-        function renderNotifications(c) { c.innerHTML = `<div class="p-6 bg-white h-full md:mt-4 md:border md:rounded-lg"><h2 class="text-xl font-bold mb-6 text-slate-900 uppercase tracking-widest text-[10px]">Activity</h2>${state.notifications.map(n => `<div class="flex items-center space-x-4 mb-4 pb-4 border-b border-slate-50 cursor-pointer hover:bg-slate-50" onclick="window.location.hash='#/post/${n.post_id}'"><div class="w-10 h-10 rounded-full bg-slate-900 flex items-center justify-center text-white"><i data-lucide="${n.type === 'upvote' ? 'heart' : 'message-circle'}" class="w-4 h-4"></i></div><div class="text-sm text-slate-800"><strong>@${n.actor_username}</strong> ${n.type === 'upvote' ? 'prioritized your report.' : 'commented on your report.'}</div></div>`).join('')}</div>`; }
-        
-        function renderAuth(c) { 
-            const isSignUp = state.authMode === 'signup'; 
-            c.innerHTML = `
-                <div class="max-w-[350px] mx-auto flex flex-col justify-center h-full text-center p-6 bg-white">
-                    <h2 class="logo-font text-4xl mb-4 tracking-tighter text-slate-900 text-center">CivicGram</h2>
-                    <form onsubmit="handleAuth(event)" class="space-y-3">
-                        ${isSignUp ? '<input type="text" id="auth-user" placeholder="Pick @handle" required class="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg text-[13px] outline-none">' : ''}
-                        <input type="email" id="auth-email" placeholder="Email Address" required class="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg text-[13px] outline-none">
-                        <input type="password" id="auth-pass" placeholder="Secure Password" required class="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg text-[13px] outline-none">
-                        <button type="submit" class="w-full py-2.5 btn-blue text-sm mt-3 uppercase tracking-widest font-black">${isSignUp ? 'Join Nation' : 'Enter'}</button>
-                    </form>
-                    <p onclick="state.authMode = '${isSignUp ? 'login' : 'signup'}'; handleNavigation();" class="text-[13px] font-bold text-blue-900 mt-6 cursor-pointer underline text-center">
-                        ${isSignUp ? 'Already a hero? Login' : "New Hero? Join Now"}
-                    </p>
-                </div>`; 
-        }
-        
-        async function handleAuth(e) { 
-            e.preventDefault(); 
-            const email = document.getElementById('auth-email').value; 
-            const password = document.getElementById('auth-pass').value; 
-            const btn = e.target.querySelector('button'); 
-            try { 
-                if (state.authMode === 'signup') { 
-                    const u = document.getElementById('auth-user').value; 
-                    await sb.auth.signUp({ email, password, options: { data: { username: u } } }); 
-                    showToast("Check your inbox!"); 
-                } else { 
-                    const { error } = await sb.auth.signInWithPassword({ email, password }); 
-                    if (error) throw error;
-                    showToast("Welcome back!"); window.location.hash = '#/feed'; 
-                } 
-            } catch(err) { showToast(err.message); } 
-        }
+        function renderSearch(c) { c.innerHTML = '<div class="p-24 text-center"><h2 class="text-3xl font-black text-slate-900 uppercase italic mb-10 tracking-tighter">Discovery Hub</h2><input placeholder="Filter reports..." class="w-full p-8 bg-white rounded-[40px] border border-slate-100 outline-none font-black text-blue-700 tracking-tight placeholder:text-slate-200"></div>'; lucide.createIcons(); }
+        function renderNotifications(c) { c.innerHTML = `<div class="bg-white rounded-[48px] border border-slate-100 p-12 h-full page-transition"><h2 class="text-2xl font-black text-slate-900 uppercase italic mb-12">Action Logs</h2><div class="space-y-6">${state.notifications.map(n => `<div class="flex items-center space-x-6 p-6 bg-slate-50 rounded-[32px] cursor-pointer hover:bg-slate-100 transition-all shadow-sm" onclick="window.location.hash='#/post/${n.post_id}'"><div class="w-14 h-14 rounded-[20px] bg-slate-900 flex items-center justify-center text-white shadow-xl shadow-slate-200"><i data-lucide="${n.type === 'upvote' ? 'shield-alert' : 'message-square'}" class="w-6 h-6"></i></div><div class="text-sm font-bold text-slate-700 leading-tight"><strong>@${n.actor_username}</strong> backed your report action.</div></div>`).join('')}</div></div>`; lucide.createIcons(); }
+        function renderAuth(c) { const isSignUp = state.authMode === 'signup'; c.innerHTML = `<div class="max-w-md mx-auto py-24 text-center px-8 page-transition"><div class="w-20 h-20 bg-blue-700 rounded-[32px] flex items-center justify-center mx-auto mb-8 shadow-2xl rotate-3"><i data-lucide="shield-check" class="text-white w-10 h-10"></i></div><h2 class="text-4xl font-black text-slate-900 italic uppercase">${isSignUp ? 'Establish ID' : 'Identify'}</h2><form onsubmit="handleAuth(event)" class="space-y-4">${isSignUp ? '<div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm"><input type="text" id="auth-user" placeholder="@handle" required class="w-full outline-none font-bold"></div>' : ''}<div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm"><input type="email" id="email" placeholder="Email" required class="w-full outline-none font-bold"></div><div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm"><input type="password" id="password" placeholder="Pass" required class="w-full outline-none font-bold"></div><button type="submit" class="w-full py-5 bg-slate-900 text-white rounded-3xl font-black uppercase tracking-widest shadow-xl">Identify</button></form><p onclick="state.authMode = '${isSignUp ? 'login' : 'signup'}'; state.currentView = null; handleNavigation();" class="text-xs font-black text-blue-600 mt-10 cursor-pointer uppercase underline">Switch Portal</p></div>`; lucide.createIcons(); }
+        function renderEditProfile(c) { c.innerHTML = `<div class="bg-white rounded-[40px] border border-slate-100 overflow-hidden shadow-sm page-transition"><header class="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/50"><h2 class="text-xs font-black uppercase text-slate-900">Refine ID</h2><button form="edit-profile-form" type="submit" id="save-profile-btn" class="bg-blue-600 text-white px-8 py-3 rounded-2xl font-black text-xs uppercase shadow-lg">Update</button></header><form id="edit-profile-form" onsubmit="handleUpdateProfile(event)" class="p-8 space-y-8"><div class="flex flex-col items-center space-y-6"><div class="avatar-lg upload-wrapper shadow-inner" id="avatar-preview">${state.user.avatar_url ? `<img src="${state.user.avatar_url}" class="w-full h-full object-cover">` : `<div class="w-full h-full bg-slate-100 flex items-center justify-center text-slate-300"><i data-lucide="user"></i></div>`}<input type="file" id="p-avatar" accept="image/*" onchange="handleImageSelection(event, 'avatar-preview', 'save-profile-btn')"></div></div><div class="space-y-6"><div class="bg-slate-50 p-6 rounded-[24px]"><label class="block text-[8px] text-slate-400 font-black uppercase mb-2">Display Name</label><input id="p-display-name" type="text" value="${state.user.display_name || ''}" class="w-full bg-transparent border-none outline-none font-bold text-slate-900"></div><div class="bg-slate-50 p-6 rounded-[24px]"><label class="block text-[8px] text-slate-400 font-black uppercase mb-2">Bio</label><textarea id="p-bio" rows="2" class="w-full bg-transparent border-none outline-none font-bold text-slate-900 resize-none">${state.user.bio || ''}</textarea></div></div></form></div>`; lucide.createIcons(); }
 
         window.onload = init;
     </script>
