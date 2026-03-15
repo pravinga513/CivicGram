@@ -36,11 +36,12 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
+        /* Dashboard Shell */
         #app-shell { display: flex; min-height: 100vh; width: 100%; }
 
         #sidebar {
             width: 280px; height: 100vh; position: fixed; left: 0; top: 0;
-            background: #fff; border-right: 1px solid #e2e8e0; padding: 2.5rem 1.5rem;
+            background: #fff; border-right: 1px solid #e2e8f0; padding: 2.5rem 1.5rem;
             display: none; flex-direction: column; z-index: 100;
         }
 
@@ -100,6 +101,7 @@
             background: #f8fafc; transition: all 0.2s; cursor: pointer; position: relative;
             overflow: hidden; min-height: 250px;
         }
+        .upload-area:hover { border-color: var(--civic-accent); background: #f1f5f9; }
 
         #video-feed {
             width: 100%; max-width: 500px; border-radius: 32px; background: black;
@@ -121,11 +123,18 @@
             height: calc(100vh - 150px); width: 100%; border-radius: 32px;
             overflow: hidden; border: 8px solid white; box-shadow: 0 20px 40px rgba(0,0,0,0.1);
         }
+
+        .custom-pin { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+
+        .upload-overlay {
+            position: absolute; inset: 0; background: rgba(30, 58, 138, 0.9);
+            display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; z-index: 50;
+        }
     </style>
 </head>
 <body>
 
-    <!-- FULLSCREEN GALLERY OVERLAY -->
+    <!-- OVERLAYS -->
     <div id="fullscreen-overlay">
         <button onclick="closeFullscreen()" class="absolute top-8 right-8 text-white p-3 hover:bg-white/10 rounded-full transition-all"><i data-lucide="x" class="w-8 h-8"></i></button>
         <button id="fs-prev" class="absolute left-8 top-1/2 -translate-y-1/2 text-white p-5 hover:bg-white/10 rounded-full transition-all hidden"><i data-lucide="chevron-left" class="w-10 h-10"></i></button>
@@ -141,7 +150,9 @@
             <p id="cam-address" class="text-[10px] font-black text-blue-400 uppercase tracking-widest leading-relaxed">Resolving Address...</p>
         </div>
         <button onclick="stopCamera()" class="absolute top-8 right-8 text-white p-4 hover:bg-white/10 rounded-full z-20 transition-all"><i data-lucide="x" class="w-8 h-8"></i></button>
+        
         <video id="video-feed" autoplay playsinline class="mx-4"></video>
+        
         <div class="mt-10 flex items-center space-x-12 z-10">
             <button id="capture-btn" onclick="captureFrame()" class="camera-trigger shadow-2xl">
                 <div class="w-full h-full rounded-full border-[6px] border-slate-900 m-1"></div>
@@ -153,14 +164,15 @@
     <!-- CAPTURE REVIEW OVERLAY -->
     <div id="capture-review-overlay">
         <div class="absolute top-10 left-10 text-white z-10 pointer-events-none">
-            <h3 class="font-black italic text-2xl uppercase tracking-tighter leading-none mb-2">Verify Evidence</h3>
+            <h3 id="review-title" class="font-black italic text-2xl uppercase tracking-tighter leading-none mb-2">Verify Evidence</h3>
             <p class="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Geo-Tag Signature Valid</p>
         </div>
+        <button onclick="discardCapture()" class="absolute top-8 right-8 text-white p-4 hover:bg-white/10 rounded-full transition-all"><i data-lucide="x" class="w-8 h-8"></i></button>
         <img id="review-img" class="max-w-[90%] max-h-[70vh] object-contain rounded-3xl shadow-2xl border-4 border-white/10 mb-8">
         <div class="flex items-center space-x-4">
-            <button onclick="discardCapture()" class="px-8 py-4 bg-slate-800 text-slate-300 rounded-3xl font-black text-xs uppercase tracking-widest">Discard</button>
+            <button id="review-discard-btn" onclick="discardCapture()" class="px-8 py-4 bg-slate-800 text-slate-300 rounded-3xl font-black text-xs uppercase tracking-widest">Discard</button>
             <button onclick="window.downloadBlob(state.currentCapture)" class="px-8 py-4 bg-slate-700 text-white rounded-3xl font-black text-xs uppercase tracking-widest flex items-center"><i data-lucide="download" class="w-4 h-4 mr-2"></i>Download</button>
-            <button onclick="confirmCapture()" class="px-10 py-4 bg-blue-600 text-white rounded-3xl font-black text-xs uppercase tracking-widest shadow-xl shadow-blue-900/50">Accept & Add</button>
+            <button id="review-confirm-btn" onclick="confirmCapture()" class="px-10 py-4 bg-blue-600 text-white rounded-3xl font-black text-xs uppercase tracking-widest shadow-xl shadow-blue-900/50">Accept & Add</button>
         </div>
     </div>
 
@@ -188,7 +200,7 @@
                 <div onclick="window.location.hash = '#/notifications'" class="nav-link" data-route="notifications"><i data-lucide="bell"></i><span>Activity</span></div>
                 <div onclick="window.location.hash = '#/u'" class="nav-link" data-route="u">
                     <div id="sidebar-avatar" class="w-6 h-6 rounded-full bg-slate-100 mr-4 flex items-center justify-center text-[10px] font-bold border border-slate-200 uppercase overflow-hidden text-slate-800"><i data-lucide="user"></i></div>
-                    <span>My Account</span>
+                    <span>My Profile</span>
                 </div>
             </nav>
             <div id="sidebar-auth-zone" class="pt-8 border-t border-slate-100">
@@ -217,7 +229,7 @@
     <div id="toast-container" class="fixed bottom-28 right-6 z-[3000] flex flex-col items-end pointer-events-none"></div>
 
     <script type="text/javascript">
-        // --- 1. CORE CONFIGURATION & STATE ---
+        // --- 1. CONFIGURATION & STATE ---
         const IMGBB_API_KEY = '0abf983309932d2a2eeb289d53d7c55c';
         const SB_URL = 'https://lsfdeyayvdyohbjnqizt.supabase.co';
         const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxzZmRleWF5dmR5b2hiam5xaXp0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3MDk5NTAsImV4cCI6MjA4NzI4NTk1MH0.7FonFhSDEqA6jfiT4JulxBZT_eIhIHvwoMycdyZlhC4';
@@ -226,14 +238,14 @@
         const state = { 
             user: null, posts: [], notifications: [], myLikes: [], myFollows: [], mySaves: [],
             authMode: 'login', categories: ['Roads', 'Trash', 'Safety', 'Lights', 'Water', 'Parks'],
-            isUploading: false, tempImageUrls: [],
+            isUploading: false, tempImageUrls: [], tempCapturedData: [], // Local Base64 storage for tray review
             currentLat: 20.5937, currentLng: 78.9629, currentAddr: "Resolving Address...",
             currentView: null, profileTab: 'reports',
             cropper: null, activePreviewId: null, activeBtnId: null,
             stream: null, currentCapture: null
         };
 
-        // --- 2. INFRASTRUCTURE HELPERS (Hoisted) ---
+        // --- 2. DATA INFRASTRUCTURE HELPERS (Hoisted) ---
         
         function parseImages(imgData) {
             if (!imgData) return []; if (Array.isArray(imgData)) return imgData;
@@ -265,22 +277,6 @@
 
         function closeFullscreen() { document.getElementById('fullscreen-overlay').style.display = 'none'; }
         function closeCropper() { document.getElementById('cropper-overlay').style.display = 'none'; if (state.cropper) state.cropper.destroy(); }
-
-        function openFullscreen(imagesJson, index) {
-            const images = parseImages(imagesJson);
-            if (!images.length) return;
-            const overlay = document.getElementById('fullscreen-overlay');
-            const img = document.getElementById('fullscreen-img');
-            overlay.style.display = 'flex';
-            img.src = images[index];
-            document.getElementById('fs-counter').innerText = `${index+1} / ${images.length}`;
-            document.getElementById('fs-prev').classList.toggle('hidden', images.length <= 1);
-            document.getElementById('fs-next').classList.toggle('hidden', images.length <= 1);
-            document.getElementById('fs-prev').onclick = () => openFullscreen(images, (index - 1 + images.length) % images.length);
-            document.getElementById('fs-next').onclick = () => openFullscreen(images, (index + 1) % images.length);
-        }
-
-        // --- 3. SYSTEM DATA ENGINE ---
 
         async function fetchNotifications() { 
             if (!state.user) return; 
@@ -326,12 +322,7 @@
             updateGlobalUI();
         }
 
-        // --- 4. ENGINE GLOBALS ---
-
-        window.handlePostGallery = (postId, index) => {
-            const post = state.posts.find(p => p.id == postId);
-            if (post) openFullscreen(post.image, index);
-        };
+        // --- 3. SYSTEM GLOBAL HANDLERS ---
 
         window.handlePostUpvote = async (postId) => {
             if (!state.user) { window.location.hash = '#/auth'; return; }
@@ -387,7 +378,7 @@
             if (parts[1] === 'u') renderProfile(document.getElementById('viewport'), parts[2]);
         };
 
-        // --- 5. RENDERERS ---
+        // --- 4. RENDERERS ---
 
         function renderFeed(c) {
             c.innerHTML = `
@@ -446,10 +437,10 @@
             const isSaved = state.mySaves.includes(post.id);
 
             c.innerHTML = `
-                <div class="bg-white rounded-[40px] border border-slate-100 overflow-hidden shadow-sm page-transition">
+                <div class="bg-white rounded-[40px] border border-slate-100 overflow-hidden shadow-sm page-transition text-slate-900">
                     <header class="p-8 border-b border-slate-50 flex items-center space-x-6 sticky top-0 bg-white/90 backdrop-blur-md z-10">
-                        <button onclick="window.history.back()" class="p-2 hover:bg-slate-50 rounded-xl transition-colors"><i data-lucide="arrow-left" class="w-6 h-6 text-slate-900"></i></button>
-                        <h2 class="text-[10px] font-black uppercase tracking-widest text-slate-900">Case Investigation Trace</h2>
+                        <button onclick="window.history.back()" class="p-2 hover:bg-slate-50 rounded-xl transition-colors"><i data-lucide="arrow-left" class="w-6 h-6"></i></button>
+                        <h2 class="text-[10px] font-black uppercase tracking-widest">Case Documentation Discussion</h2>
                     </header>
                     <div class="p-4 bg-slate-50 aspect-video flex overflow-x-auto snap-x snap-mandatory no-scrollbar">
                         ${images.map((img, i) => `<img src="${img}" onclick="window.handlePostGallery(${post.id}, i)" class="w-full h-full object-contain snap-center flex-shrink-0 cursor-zoom-in">`).join('')}
@@ -557,13 +548,13 @@
             c.innerHTML = `
                 <div class="bg-white rounded-[40px] shadow-sm border border-slate-100 overflow-hidden page-transition text-slate-900">
                     <header class="p-10 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
-                        <h2 class="text-xl font-black text-slate-900 italic tracking-tighter uppercase italic text-slate-900">Create Report</h2>
+                        <h2 class="text-xl font-black text-slate-900 italic tracking-tighter uppercase italic">Create Report</h2>
                         <button form="create-form" type="submit" id="submit-post-btn" class="bg-blue-700 text-white px-10 py-4 rounded-3xl font-black text-xs uppercase tracking-widest shadow-xl disabled:opacity-50">Transmit</button>
                     </header>
                     <form id="create-form" onsubmit="handleCreate(event)" class="p-10 space-y-10">
                         <div class="flex flex-col items-center justify-center">
-                            <div class="upload-area w-full group relative" id="post-img-preview-container" onclick="startCamera()">
-                                <div id="upload-placeholder" class="flex flex-col items-center">
+                            <div class="upload-area w-full group relative" id="post-img-preview-container">
+                                <div id="upload-placeholder" class="flex flex-col items-center" onclick="startCamera()">
                                     <i data-lucide="camera" class="w-12 h-12 text-slate-300 group-hover:text-blue-500 transition-colors mb-2"></i>
                                     <span class="text-[10px] font-black uppercase text-slate-400 group-hover:text-blue-600">Launch Geo-Tag Camera</span>
                                 </div>
@@ -585,6 +576,7 @@
                 </div>`;
             lucide.createIcons();
             if (state.currentAddr) document.getElementById('c-loc').value = state.currentAddr;
+            if (state.tempCapturedData.length > 0) refreshEvidenceTray();
         }
 
         // --- 6. CAMERA & OVERLAY ENGINE ---
@@ -609,21 +601,21 @@
 
         async function captureFrame() {
             const video = document.getElementById('video-feed');
+            const captureBtn = document.getElementById('capture-btn');
+            captureBtn.disabled = true;
+
             const canvas = document.createElement('canvas');
             canvas.width = video.videoWidth; canvas.height = video.videoHeight;
             const ctx = canvas.getContext('2d');
             
-            // 1. Draw frame
             ctx.translate(canvas.width, 0); ctx.scale(-1, 1);
             ctx.drawImage(video, 0, 0);
             ctx.setTransform(1, 0, 0, 1, 0, 0);
 
-            // 2. High-Fidelity Professional Metadata Overlay
-            const barHeight = Math.floor(canvas.height * 0.18);
+            const barHeight = Math.floor(canvas.height * 0.20);
             const padding = Math.floor(canvas.width * 0.05);
             const baseFontSize = Math.max(16, Math.floor(canvas.height * 0.025));
             
-            // Dark gradient bar background
             const gradient = ctx.createLinearGradient(0, canvas.height - barHeight, 0, canvas.height);
             gradient.addColorStop(0, 'rgba(15, 23, 42, 0)');
             gradient.addColorStop(0.3, 'rgba(15, 23, 42, 0.85)');
@@ -631,7 +623,6 @@
             ctx.fillStyle = gradient;
             ctx.fillRect(0, canvas.height - barHeight, canvas.width, barHeight);
             
-            // Branding/Icon Area on Right
             ctx.fillStyle = "rgba(59, 130, 246, 0.25)";
             ctx.beginPath(); ctx.roundRect(canvas.width - 240, canvas.height - 110, 210, 80, 12); ctx.fill();
             ctx.fillStyle = "white";
@@ -640,18 +631,17 @@
             ctx.font = `900 ${baseFontSize * 0.6}px Plus Jakarta Sans`;
             ctx.fillText("CIVICGRAM EVIDENCE", canvas.width - 225, canvas.height - 50);
 
-            // Detailed Human Address Text
             ctx.fillStyle = "white";
             ctx.font = `900 ${baseFontSize * 1.3}px Plus Jakarta Sans`;
             const addrParts = state.currentAddr.split(',');
             const header = addrParts.slice(Math.max(0, addrParts.length - 3)).join(',').trim();
-            ctx.fillText(header.toUpperCase(), padding, canvas.height - 120);
+            ctx.fillText(header.toUpperCase(), padding, canvas.height - 130);
 
             ctx.font = `900 ${baseFontSize * 0.8}px Plus Jakarta Sans`;
             const fullAddr = state.currentAddr;
             const words = fullAddr.split(' ');
             let line = '';
-            let yOffset = 100;
+            let yOffset = 110;
             const textMaxWidth = canvas.width - 300; 
 
             for (let word of words) {
@@ -664,49 +654,39 @@
             }
             ctx.fillText(line, padding, canvas.height - yOffset);
 
-            // Coordinates and Timestamp
             ctx.fillStyle = "#3b82f6";
             ctx.font = `900 ${baseFontSize * 0.8}px Plus Jakarta Sans`;
-            ctx.fillText(`LAT: ${state.currentLat.toFixed(6)} | LONG: ${state.currentLng.toFixed(6)}`, padding, canvas.height - 45);
+            ctx.fillText(`LAT: ${state.currentLat.toFixed(6)}° | LONG: ${state.currentLng.toFixed(6)}°`, padding, canvas.height - 50);
             ctx.fillStyle = "#94a3b8";
-            ctx.fillText(formatDateTime().toUpperCase(), padding, canvas.height - 20);
+            ctx.fillText(formatDateTime().toUpperCase(), padding, canvas.height - 25);
 
             state.currentCapture = canvas.toDataURL('image/jpeg', 0.9);
             
-            // Open Capture Review Overlay
             const reviewOverlay = document.getElementById('capture-review-overlay');
             const reviewImg = document.getElementById('review-img');
+            const reviewConfirm = document.getElementById('review-confirm-btn');
+            const reviewDiscard = document.getElementById('review-discard-btn');
+            
+            document.getElementById('review-title').innerText = "Verify Evidence";
+            reviewConfirm.classList.remove('hidden');
+            reviewDiscard.classList.remove('hidden');
+
             reviewImg.src = state.currentCapture;
             reviewOverlay.style.display = 'flex';
+            captureBtn.disabled = false;
             lucide.createIcons();
         }
 
         function confirmCapture() {
             const dataUrl = state.currentCapture;
-            const grid = document.getElementById('multi-preview-grid');
-            const placeholder = document.getElementById('upload-placeholder');
-            const uploadLayer = document.getElementById('cam-upload-overlay');
-            
-            grid.classList.remove('hidden');
-            if (placeholder) placeholder.style.display = 'none';
-            if (uploadLayer) uploadLayer.classList.remove('hidden');
+            state.tempCapturedData.push(dataUrl);
+            refreshEvidenceTray();
 
-            const index = state.tempImageUrls.length;
-            const wrap = document.createElement('div');
-            wrap.className = "relative group h-24 evidence-tray-item";
-            wrap.dataset.index = index;
-            wrap.innerHTML = `
-                <img src="${dataUrl}" class="w-full h-full object-cover rounded-xl border border-slate-100 shadow-sm">
-                <button onclick="removeEvidence(${index})" class="absolute -top-2 -right-2 bg-red-600 text-white rounded-full p-1 shadow-lg hover:scale-110 transition-transform"><svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="3" fill="none"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
-            `;
-            grid.appendChild(wrap);
-
-            // Cloud Sync
             state.isUploading = true;
             fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, { method: 'POST', body: (function(){ const fd = new FormData(); fd.append('image', dataUrl.split(',')[1]); return fd; })() })
                 .then(res => res.json())
-                .then(d => { if (d.success) { state.tempImageUrls.push(d.data.url); showToast("Evidence Trace Captured"); } })
-                .finally(() => { state.isUploading = false; if(uploadLayer) uploadLayer.classList.add('hidden'); });
+                .then(d => { if (d.success) { state.tempImageUrls.push(d.data.url); showToast("Evidence Staged"); } })
+                .finally(() => { state.isUploading = false; document.getElementById('cam-upload-overlay')?.classList.add('hidden'); });
 
             discardCapture();
         }
@@ -716,22 +696,57 @@
             state.currentCapture = null;
         }
 
-        window.removeEvidence = (index) => {
-            state.tempImageUrls.splice(index, 1);
+        function refreshEvidenceTray() {
             const grid = document.getElementById('multi-preview-grid');
-            const items = grid.querySelectorAll('.evidence-tray-item');
-            if (items[index]) items[index].remove();
-            if (state.tempImageUrls.length === 0) {
-                 grid.classList.add('hidden');
-                 document.getElementById('upload-placeholder').style.display = 'flex';
+            const placeholder = document.getElementById('upload-placeholder');
+            if (!grid) return;
+
+            grid.innerHTML = '';
+            if (state.tempCapturedData.length > 0) {
+                grid.classList.remove('hidden');
+                if (placeholder) placeholder.style.display = 'none';
+                
+                state.tempCapturedData.forEach((base64, index) => {
+                    const wrap = document.createElement('div');
+                    wrap.className = "relative group h-24";
+                    wrap.innerHTML = `
+                        <img src="${base64}" onclick="inspectEvidence(${index})" class="w-full h-full object-cover rounded-xl border border-slate-100 shadow-sm cursor-pointer">
+                        <button onclick="removeEvidence(${index})" class="absolute -top-2 -right-2 bg-red-600 text-white rounded-full p-1.5 shadow-lg hover:scale-110 transition-transform"><svg viewBox="0 0 24 24" width="10" height="10" stroke="currentColor" stroke-width="4" fill="none"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+                    `;
+                    grid.appendChild(wrap);
+                });
+            } else {
+                grid.classList.add('hidden');
+                if (placeholder) placeholder.style.display = 'flex';
             }
+        }
+
+        window.inspectEvidence = (index) => {
+            state.currentCapture = state.tempCapturedData[index];
+            const reviewOverlay = document.getElementById('capture-review-overlay');
+            const reviewImg = document.getElementById('review-img');
+            const reviewConfirm = document.getElementById('review-confirm-btn');
+            const reviewDiscard = document.getElementById('review-discard-btn');
+
+            document.getElementById('review-title').innerText = "Evidence Review";
+            reviewConfirm.classList.add('hidden');
+            reviewDiscard.classList.add('hidden');
+
+            reviewImg.src = state.currentCapture;
+            reviewOverlay.style.display = 'flex';
+        };
+
+        window.removeEvidence = (index) => {
+            state.tempCapturedData.splice(index, 1);
+            state.tempImageUrls.splice(index, 1);
+            refreshEvidenceTray();
         };
 
         window.downloadBlob = (base64) => {
             const l = document.createElement('a'); l.href = base64; l.download = `CivicGram_Evidence_${Date.now()}.jpg`; l.click();
         };
 
-        // --- 6. NAVIGATION ENGINE ---
+        // --- 7. NAVIGATION & INIT ---
 
         async function handleNavigation() {
             const viewport = document.getElementById('viewport');
@@ -793,7 +808,7 @@
             if ("geolocation" in navigator) navigator.geolocation.getCurrentPosition((p) => { state.currentLat = p.coords.latitude; state.currentLng = p.coords.longitude; }, () => {});
         }
 
-        // Shared Standard Page Handlers
+        // Shared Handlers
         async function handleLogout() { await sb.auth.signOut(); }
         async function submitComment(e, pId) { e.preventDefault(); const c = e.target.comment.value.trim(); if (!c || !state.user) return; await sb.from('comments').insert({ post_id: pId, user_id: state.user.id, username: state.user.username, content: c }); e.target.reset(); await fetchPosts(); renderPostDetail(document.getElementById('viewport'), pId); }
         async function handleAuth(e) { e.preventDefault(); const email = document.getElementById('email').value; const password = document.getElementById('password').value; const btn = e.target.querySelector('button'); btn.disabled = true; try { if (state.authMode === 'signup') { const u = document.getElementById('auth-user').value; await sb.auth.signUp({ email, password, options: { data: { username: u } } }); showToast("Check Inbox"); } else { await sb.auth.signInWithPassword({ email, password }); } } catch(err) { showToast(err.message); btn.disabled = false; } }
@@ -833,10 +848,10 @@
             });
         }
 
-        function renderSearch(c) { c.innerHTML = '<div class="p-24 text-center"><h2 class="text-3xl font-black text-slate-900 uppercase italic mb-10 tracking-tighter text-slate-900 leading-none">Discovery Hub</h2><input placeholder="Filter reports..." class="w-full p-8 bg-white rounded-[40px] border border-slate-100 outline-none font-black text-blue-700 tracking-tight placeholder:text-slate-200 shadow-xl"></div>'; lucide.createIcons(); }
+        function renderSearch(c) { c.innerHTML = '<div class="p-24 text-center text-slate-900"><h2 class="text-3xl font-black uppercase italic mb-10 tracking-tighter">Discovery Hub</h2><input placeholder="Filter reports..." class="w-full p-8 bg-white rounded-[40px] border border-slate-100 outline-none font-black text-blue-700 tracking-tight placeholder:text-slate-200 shadow-xl"></div>'; lucide.createIcons(); }
         function renderNotifications(c) { c.innerHTML = `<div class="bg-white rounded-[48px] border border-slate-100 p-12 h-full page-transition text-slate-900"><h2 class="text-2xl font-black text-slate-900 uppercase italic mb-12">Action Logs</h2><div class="space-y-6">${state.notifications.map(n => `<div class="flex items-center space-x-6 p-6 bg-slate-50 rounded-[32px] cursor-pointer hover:bg-slate-100 transition-all shadow-sm" onclick="window.location.hash='#/post/${n.post_id}'"><div class="w-14 h-14 rounded-[20px] bg-slate-900 flex items-center justify-center text-white shadow-xl shadow-slate-200"><i data-lucide="${n.type === 'upvote' ? 'shield-alert' : 'message-square'}" class="w-6 h-6"></i></div><div class="text-sm font-bold text-slate-700 leading-tight"><strong>@${n.actor_username}</strong> backed your report action.</div></div>`).join('')}</div></div>`; lucide.createIcons(); }
-        function renderAuth(c) { const isSignUp = state.authMode === 'signup'; c.innerHTML = `<div class="max-w-md mx-auto py-24 text-center px-8 page-transition text-slate-900"><div class="w-20 h-20 bg-blue-700 rounded-[32px] flex items-center justify-center mx-auto mb-8 shadow-2xl rotate-3 text-white"><i data-lucide="shield-check" class="text-white w-10 h-10"></i></div><h2 class="text-4xl font-black text-slate-900 italic uppercase">${isSignUp ? 'Establish ID' : 'Identify'}</h2><form onsubmit="handleAuth(event)" class="space-y-4 text-slate-900">${isSignUp ? '<div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm"><input type="text" id="auth-user" placeholder="@handle" required class="w-full outline-none font-bold text-slate-900"></div>' : ''}<div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm"><input type="email" id="email" placeholder="Email" required class="w-full outline-none font-bold text-slate-900"></div><div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm"><input type="password" id="password" placeholder="Pass" required class="w-full outline-none font-bold text-slate-900"></div><button type="submit" class="w-full py-5 bg-slate-900 text-white rounded-3xl font-black uppercase tracking-widest shadow-xl">Identify</button></form><p onclick="state.authMode = '${isSignUp ? 'login' : 'signup'}'; state.currentView = null; handleNavigation();" class="text-xs font-black text-blue-600 mt-10 cursor-pointer uppercase underline">Switch Portal</p></div>`; lucide.createIcons(); }
-        function renderEditProfile(c) { c.innerHTML = `<div class="bg-white rounded-[40px] border border-slate-100 overflow-hidden shadow-sm page-transition text-slate-900"><header class="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/50 text-slate-900"><h2 class="text-xs font-black uppercase text-slate-900">Refine ID</h2><button form="edit-profile-form" type="submit" id="save-profile-btn" class="bg-blue-600 text-white px-8 py-3 rounded-2xl font-black text-xs uppercase shadow-lg">Update</button></header><form id="edit-profile-form" onsubmit="handleUpdateProfile(event)" class="p-8 space-y-8"><div class="flex flex-col items-center space-y-6"><div class="avatar-lg upload-wrapper shadow-inner" id="avatar-preview">${state.user.avatar_url ? `<img src="${state.user.avatar_url}" class="w-full h-full object-cover">` : `<div class="w-full h-full bg-slate-100 flex items-center justify-center text-slate-300"><i data-lucide="user"></i></div>`}<input type="file" id="p-avatar" accept="image/*" onchange="handleImageSelection(event, 'avatar-preview', 'save-profile-btn')"></div></div><div class="space-y-6 text-slate-900"><div class="bg-slate-50 p-6 rounded-[24px] text-slate-900"><label class="block text-[8px] text-slate-400 font-black uppercase mb-2">Display Name</label><input id="p-display-name" type="text" value="${state.user.display_name || ''}" class="w-full bg-transparent border-none outline-none font-bold text-slate-900"></div><div class="bg-slate-50 p-6 rounded-[24px] text-slate-900"><label class="block text-[8px] text-slate-400 font-black uppercase mb-2">Bio</label><textarea id="p-bio" rows="2" class="w-full bg-transparent border-none outline-none font-bold text-slate-900 resize-none">${state.user.bio || ''}</textarea></div></div></form></div>`; lucide.createIcons(); }
+        function renderAuth(c) { const isSignUp = state.authMode === 'signup'; c.innerHTML = `<div class="max-w-md mx-auto py-24 text-center px-8 page-transition text-slate-900"><div class="w-20 h-20 bg-blue-700 rounded-[32px] flex items-center justify-center mx-auto mb-8 shadow-2xl rotate-3 text-white"><i data-lucide="shield-check" class="text-white w-10 h-10"></i></div><h2 class="text-4xl font-black text-slate-900 italic uppercase">${isSignUp ? 'Establish ID' : 'Identify'}</h2><form onsubmit="handleAuth(event)" class="space-y-4 text-slate-900">${isSignUp ? '<div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm"><input type="text" id="auth-user" placeholder="@handle" required class="w-full outline-none font-bold text-slate-900"></div>' : ''}<div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm"><input type="email" id="email" placeholder="Email" required class="w-full outline-none font-bold text-slate-900"></div><div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm"><input type="password" id="password" placeholder="Pass" required class="w-full outline-none font-bold text-slate-900"></div><button type="submit" class="w-full py-5 bg-slate-900 text-white rounded-3xl font-black uppercase tracking-widest shadow-xl text-sm">Identify</button></form><p onclick="state.authMode = '${isSignUp ? 'login' : 'signup'}'; state.currentView = null; handleNavigation();" class="text-xs font-black text-blue-600 mt-10 cursor-pointer uppercase underline">Switch Portal</p></div>`; lucide.createIcons(); }
+        function renderEditProfile(c) { c.innerHTML = `<div class="bg-white rounded-[40px] border border-slate-100 overflow-hidden shadow-sm page-transition text-slate-900"><header class="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/50 text-slate-900"><h2 class="text-xs font-black uppercase text-slate-900">Refine ID</h2><button form="edit-profile-form" type="submit" id="save-profile-btn" class="bg-blue-600 text-white px-8 py-3 rounded-2xl font-black text-xs uppercase shadow-lg">Update</button></header><form id="edit-profile-form" onsubmit="handleUpdateProfile(event)" class="p-8 space-y-8"><div class="flex flex-col items-center space-y-6"><div class="avatar-lg upload-wrapper shadow-inner" id="avatar-preview" onclick="document.getElementById('p-avatar').click()">${state.user.avatar_url ? `<img src="${state.user.avatar_url}" class="w-full h-full object-cover">` : `<div class="w-full h-full bg-slate-100 flex items-center justify-center text-slate-300"><i data-lucide="user"></i></div>`}<input type="file" id="p-avatar" class="hidden" accept="image/*" onchange="handleImageSelection(event, 'avatar-preview', 'save-profile-btn')"></div></div><div class="space-y-6 text-slate-900"><div class="bg-slate-50 p-6 rounded-[24px] text-slate-900"><label class="block text-[8px] text-slate-400 font-black uppercase mb-2">Display Name</label><input id="p-display-name" type="text" value="${state.user.display_name || ''}" class="w-full bg-transparent border-none outline-none font-bold text-slate-900"></div><div class="bg-slate-50 p-6 rounded-[24px] text-slate-900"><label class="block text-[8px] text-slate-400 font-black uppercase mb-2">Bio</label><textarea id="p-bio" rows="2" class="w-full bg-transparent border-none outline-none font-bold text-slate-900 resize-none">${state.user.bio || ''}</textarea></div></div></form></div>`; lucide.createIcons(); }
 
         function handleImageSelection(event, previewId, buttonId) {
             const files = Array.from(event.target.files || []);
