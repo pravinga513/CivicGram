@@ -77,8 +77,6 @@
         .grid-1 { grid-template-columns: 1fr; }
         .grid-2 { grid-template-columns: 1fr 1fr; }
         .grid-3 { grid-template-columns: 2fr 1fr; grid-template-rows: 1fr 1fr; }
-        .grid-3 .grid-item:first-child { grid-row: span 2; }
-        .grid-4 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
         .grid-item { width: 100%; height: 100%; object-fit: cover; }
 
         #fullscreen-overlay, #cropper-overlay, #camera-overlay {
@@ -105,7 +103,7 @@
 
         #video-feed {
             width: 100%; max-width: 500px; border-radius: 32px; background: black;
-            box-shadow: 0 30px 60px rgba(0,0,0,0.6); transform: scaleX(-1);
+            box-shadow: 0 30px 60px rgba(0,0,0,0.6);
         }
         
         .camera-trigger {
@@ -124,8 +122,6 @@
             overflow: hidden; border: 8px solid white; box-shadow: 0 20px 40px rgba(0,0,0,0.1);
         }
 
-        .custom-pin { display: flex; flex-direction: column; align-items: center; justify-content: center; }
-
         .upload-overlay {
             position: absolute; inset: 0; background: rgba(30, 58, 138, 0.9);
             display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; z-index: 50;
@@ -134,7 +130,7 @@
 </head>
 <body>
 
-    <!-- OVERLAYS -->
+    <!-- GALLERY VIEW -->
     <div id="fullscreen-overlay">
         <button onclick="closeFullscreen()" class="absolute top-8 right-8 text-white p-3 hover:bg-white/10 rounded-full transition-all"><i data-lucide="x" class="w-8 h-8"></i></button>
         <button id="fs-prev" class="absolute left-8 top-1/2 -translate-y-1/2 text-white p-5 hover:bg-white/10 rounded-full transition-all hidden"><i data-lucide="chevron-left" class="w-10 h-10"></i></button>
@@ -224,13 +220,13 @@
             user: null, posts: [], notifications: [], myLikes: [], myFollows: [], mySaves: [],
             authMode: 'login', categories: ['Roads', 'Trash', 'Safety', 'Lights', 'Water', 'Parks'],
             isUploading: false, tempImageUrls: [],
-            currentLat: 20.5937, currentLng: 78.9629, currentAddr: "Syncing Address...",
+            currentLat: 20.5937, currentLng: 78.9629, currentAddr: "Resolving Address...",
             currentView: null, profileTab: 'reports',
             cropper: null, activePreviewId: null, activeBtnId: null,
             stream: null
         };
 
-        // --- 2. INFRASTRUCTURE & DATA HELPERS (Hoisted) ---
+        // --- 2. INFRASTRUCTURE HELPERS (Hoisted for Reference Fix) ---
         
         function parseImages(imgData) {
             if (!imgData) return []; if (Array.isArray(imgData)) return imgData;
@@ -257,9 +253,27 @@
             const now = new Date();
             const date = now.toLocaleDateString('en-GB').split('/').join('/');
             const time = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-            const offset = '+05:30'; // Static for national context or dynamic via now.getTimezoneOffset()
-            return `${date} ${time} GMT ${offset}`;
+            return `${date} ${time} GMT+05:30`;
         }
+
+        function closeFullscreen() { document.getElementById('fullscreen-overlay').style.display = 'none'; }
+        function closeCropper() { document.getElementById('cropper-overlay').style.display = 'none'; if (state.cropper) state.cropper.destroy(); }
+
+        function openFullscreen(imagesJson, index) {
+            const images = parseImages(imagesJson);
+            if (!images.length) return;
+            const overlay = document.getElementById('fullscreen-overlay');
+            const img = document.getElementById('fullscreen-img');
+            overlay.style.display = 'flex';
+            img.src = images[index];
+            document.getElementById('fs-counter').innerText = `${index+1} / ${images.length}`;
+            document.getElementById('fs-prev').classList.toggle('hidden', images.length <= 1);
+            document.getElementById('fs-next').classList.toggle('hidden', images.length <= 1);
+            document.getElementById('fs-prev').onclick = () => openFullscreen(images, (index - 1 + images.length) % images.length);
+            document.getElementById('fs-next').onclick = () => openFullscreen(images, (index + 1) % images.length);
+        }
+
+        // --- 3. DATA FETCHING & GLOBAL UI ---
 
         async function fetchNotifications() { 
             if (!state.user) return; 
@@ -305,7 +319,7 @@
             updateGlobalUI();
         }
 
-        // --- 3. SYSTEM GLOBAL HANDLERS ---
+        // --- 4. ENGINE GLOBALS (Event Handlers) ---
 
         window.handlePostGallery = (postId, index) => {
             const post = state.posts.find(p => p.id == postId);
@@ -324,7 +338,7 @@
                 await sb.from('post_upvotes').insert({ post_id: postId, user_id: state.user.id });
                 if (post.author_id !== state.user.id) await sb.from('notifications').insert({ user_id: post.author_id, actor_id: state.user.id, actor_username: state.user.username, post_id: postId, type: 'upvote' });
             }
-            handleNavigation(); // Refresh view
+            handleNavigation(); 
         };
 
         window.handlePostSave = async (postId) => {
@@ -361,12 +375,13 @@
             } else {
                 state.myFollows.push(targetUserId);
                 await sb.from('follows').insert({ follower_id: state.user.id, following_id: targetUserId });
+                showToast("Connection Synced");
             }
             const parts = window.location.hash.split('/');
             if (parts[1] === 'u') renderProfile(document.getElementById('viewport'), parts[2]);
         };
 
-        // --- 4. RENDERERS ---
+        // --- 5. COMPONENT RENDERERS ---
 
         function renderFeed(c) {
             c.innerHTML = `
@@ -428,17 +443,17 @@
                 <div class="bg-white rounded-[40px] border border-slate-100 overflow-hidden shadow-sm page-transition">
                     <header class="p-8 border-b border-slate-50 flex items-center space-x-6 sticky top-0 bg-white/90 backdrop-blur-md z-10">
                         <button onclick="window.history.back()" class="p-2 hover:bg-slate-50 rounded-xl transition-colors"><i data-lucide="arrow-left" class="w-6 h-6 text-slate-900"></i></button>
-                        <h2 class="text-[10px] font-black uppercase tracking-widest text-slate-900">Case Documentation Discussion</h2>
+                        <h2 class="text-[10px] font-black uppercase tracking-widest text-slate-900">Case Investigation Trace</h2>
                     </header>
                     <div class="p-4 bg-slate-50 aspect-video flex overflow-x-auto snap-x snap-mandatory no-scrollbar">
                         ${images.map((img, i) => `<img src="${img}" onclick="window.handlePostGallery(${post.id}, i)" class="w-full h-full object-contain snap-center flex-shrink-0 cursor-zoom-in">`).join('')}
                     </div>
                     <div class="p-8 border-b border-slate-50">
                         <div class="flex items-start space-x-4 mb-8">
-                            <div class="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center font-black uppercase text-xs italic">${post.author[0]}</div>
+                            <div class="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center font-black uppercase text-xs italic shadow-lg shadow-slate-100">${post.author[0]}</div>
                             <div class="flex-1">
                                 <div class="flex items-center mb-1">
-                                     <div class="w-5 h-5 rounded-full overflow-hidden bg-slate-200 mr-2 flex items-center justify-center text-[7px] font-black">
+                                     <div class="w-5 h-5 rounded-full overflow-hidden bg-slate-200 mr-2 flex items-center justify-center text-[7px] font-black border border-slate-300">
                                          ${post.author_avatar ? `<img src="${post.author_avatar}" class="w-full h-full object-cover">` : '@'}
                                      </div>
                                      <p class="text-sm font-black text-slate-900 uppercase italic tracking-tighter">@${post.author}</p>
@@ -463,8 +478,8 @@
                             </div>`).join('')}
                     </div>
                     <form onsubmit="submitComment(event, ${post.id})" class="p-8 border-t border-slate-50 bg-white flex items-center space-x-4">
-                        <input name="comment" placeholder="Add community context..." required class="flex-1 bg-slate-50 p-5 rounded-3xl border-none outline-none font-bold text-sm">
-                        <button type="submit" class="bg-blue-600 text-white p-5 rounded-3xl shadow-lg transition-transform active:scale-95"><i data-lucide="send" class="w-6 h-6"></i></button>
+                        <input name="comment" placeholder="Add context..." required class="flex-1 bg-slate-50 p-5 rounded-3xl border-none outline-none font-bold text-sm shadow-inner">
+                        <button type="submit" class="bg-blue-600 text-white p-5 rounded-3xl shadow-xl transition-all active:scale-95"><i data-lucide="send" class="w-6 h-6"></i></button>
                     </form>
                 </div>`;
             lucide.createIcons();
@@ -487,7 +502,7 @@
             const displayPosts = state.profileTab === 'reports' ? userPosts : savedPosts;
 
             c.innerHTML = `
-                <div class="bg-white rounded-[40px] border border-slate-100 overflow-hidden shadow-sm page-transition">
+                <div class="bg-white rounded-[40px] border border-slate-100 overflow-hidden shadow-sm page-transition text-slate-900">
                     <div class="px-8 py-12 flex flex-col items-center text-center">
                         <div class="avatar-lg mb-6 border border-slate-100 shadow-inner">${profile.avatar_url ? `<img src="${profile.avatar_url}" class="w-full h-full object-cover">` : `<div class="w-full h-full bg-slate-900 text-white flex items-center justify-center font-black text-3xl uppercase italic">${profile.username[0]}</div>`}</div>
                         <h2 class="text-2xl font-black text-slate-900 tracking-tighter uppercase italic">${profile.display_name || profile.username}</h2>
@@ -527,7 +542,7 @@
                     const color = avgVotes > 50 ? '#ef4444' : avgVotes > 10 ? '#8b5cf6' : '#3b82f6';
                     const [la, ln] = k.split(',').map(Number);
                     const icon = L.divIcon({ className: 'custom-pin', html: `<div style="color:${color}"><svg viewBox="0 0 24 24" width="36" height="36" stroke="currentColor" stroke-width="3" fill="white" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3" fill="currentColor"/></svg></div>`, iconSize: [36, 36], iconAnchor: [18, 36] });
-                    L.marker([la, ln], { icon }).addTo(map).bindPopup(`<div class="flex flex-col bg-white overflow-hidden rounded-2xl w-56 p-2"><h3 class="font-black text-[10px] uppercase text-slate-400 mb-3 px-2 tracking-widest italic">Area Hotspot (${group.length})</h3><div class="space-y-3">${top5.map(p => `<div class="flex items-center space-x-3 p-2 hover:bg-slate-50 rounded-xl cursor-pointer" onclick="window.location.hash='#/post/${p.id}'"><img src="${parseImages(p.image)[0]}" class="w-10 h-10 object-cover rounded-lg shadow-sm"><div class="flex-1 overflow-hidden"><p class="text-[9px] font-black text-blue-600">#${p.category}</p><p class="text-[10px] font-bold text-slate-800 truncate">${p.description}</p></div></div>`).join('')}</div></div>`);
+                    L.marker([la, ln], { icon }).addTo(map).bindPopup(`<div class="flex flex-col bg-white overflow-hidden rounded-2xl w-56 p-2 shadow-2xl"><h3 class="font-black text-[10px] uppercase text-slate-400 mb-3 px-2 tracking-widest italic">Area Hotspot (${group.length})</h3><div class="space-y-3">${top5.map(p => `<div class="flex items-center space-x-3 p-2 hover:bg-slate-50 rounded-xl cursor-pointer transition-all" onclick="window.location.hash='#/post/${p.id}'"><img src="${parseImages(p.image)[0]}" class="w-10 h-10 object-cover rounded-lg shadow-sm border border-slate-100"><div class="flex-1 overflow-hidden"><p class="text-[9px] font-black text-blue-600">#${p.category}</p><p class="text-[10px] font-bold text-slate-800 truncate">${p.description}</p></div></div>`).join('')}</div></div>`);
                 });
             }, 100);
         }
@@ -557,7 +572,7 @@
                             <textarea id="c-desc" placeholder="Details of the national incident..." required class="w-full text-xl p-4 outline-none border-none resize-none h-40 font-bold text-slate-900 bg-slate-50/30 rounded-3xl placeholder:text-slate-300 shadow-inner"></textarea>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div class="bg-slate-50 p-6 rounded-[32px] border border-slate-100 shadow-sm"><label class="block text-[10px] text-slate-400 font-black uppercase mb-3">Location</label><input id="c-loc" type="text" placeholder="Resolving Address..." required class="w-full bg-transparent border-none outline-none font-black text-blue-600"></div>
-                                <div class="bg-slate-50 p-6 rounded-[32px] border border-slate-100 shadow-sm"><label class="block text-[10px] text-slate-400 font-black uppercase mb-3">Authority Category</label><select id="c-cat" class="w-full bg-transparent border-none outline-none font-black text-slate-700">${state.categories.map(cat => `<option>${cat}</option>`).join('')}</select></div>
+                                <div class="bg-slate-50 p-6 rounded-[32px] border border-slate-100 shadow-sm"><label class="block text-[10px] text-slate-400 font-black uppercase mb-3">Authority Type</label><select id="c-cat" class="w-full bg-transparent border-none outline-none font-black text-slate-700">${state.categories.map(cat => `<option>${cat}</option>`).join('')}</select></div>
                             </div>
                         </div>
                     </form>
@@ -566,7 +581,7 @@
             if (state.currentAddr) document.getElementById('c-loc').value = state.currentAddr;
         }
 
-        // --- 5. CAMERA & CAPTURE LOGIC ---
+        // --- 6. CAMERA & OVERLAY ENGINE ---
 
         async function startCamera() {
             const overlay = document.getElementById('camera-overlay');
@@ -577,7 +592,8 @@
                 video.srcObject = state.stream;
                 state.currentAddr = await reverseGeocode(state.currentLat, state.currentLng);
                 document.getElementById('cam-address').innerText = state.currentAddr.toUpperCase();
-                if (document.getElementById('c-loc')) document.getElementById('c-loc').value = state.currentAddr;
+                const locInp = document.getElementById('c-loc');
+                if (locInp) locInp.value = state.currentAddr;
             } catch (e) { showToast("Camera Access Denied"); stopCamera(); }
         }
 
@@ -600,42 +616,45 @@
             ctx.drawImage(video, 0, 0);
             ctx.setTransform(1, 0, 0, 1, 0, 0);
 
-            // 2. High-Fidelity Professional Overlay
+            // 2. High-Fidelity Metadata Overlay
             const barHeight = Math.floor(canvas.height * 0.18);
             const padding = Math.floor(canvas.width * 0.05);
-            const baseFontSize = Math.max(14, Math.floor(canvas.height * 0.025));
+            const baseFontSize = Math.max(16, Math.floor(canvas.height * 0.025));
             
             // Dark gradient bar background
             const gradient = ctx.createLinearGradient(0, canvas.height - barHeight, 0, canvas.height);
-            gradient.addColorStop(0, 'rgba(0,0,0,0)');
-            gradient.addColorStop(0.3, 'rgba(15, 23, 42, 0.9)');
+            gradient.addColorStop(0, 'rgba(15, 23, 42, 0)');
+            gradient.addColorStop(0.3, 'rgba(15, 23, 42, 0.85)');
             gradient.addColorStop(1, 'rgba(15, 23, 42, 1)');
             ctx.fillStyle = gradient;
             ctx.fillRect(0, canvas.height - barHeight, canvas.width, barHeight);
             
             // Branding/Icon Placeholder Style on Right
-            ctx.fillStyle = "rgba(59, 130, 246, 0.2)";
+            ctx.fillStyle = "rgba(59, 130, 246, 0.25)";
             ctx.beginPath(); ctx.roundRect(canvas.width - 240, canvas.height - 110, 210, 80, 12); ctx.fill();
             ctx.fillStyle = "white";
             ctx.font = `900 ${baseFontSize * 1.2}px Plus Jakarta Sans`;
             ctx.fillText("GPS MAP CAMERA", canvas.width - 225, canvas.height - 75);
-            ctx.font = `bold ${baseFontSize * 0.7}px Plus Jakarta Sans`;
+            ctx.font = `900 ${baseFontSize * 0.6}px Plus Jakarta Sans`;
             ctx.fillText("CIVICGRAM EVIDENCE", canvas.width - 225, canvas.height - 50);
 
             // Detailed Human Address Text
             ctx.fillStyle = "white";
             ctx.font = `900 ${baseFontSize * 1.3}px Plus Jakarta Sans`;
-            const header = state.currentAddr.split(',').slice(0, 3).join(',').trim();
+            const addrParts = state.currentAddr.split(',');
+            const header = addrParts.slice(Math.max(0, addrParts.length - 3)).join(',').trim();
             ctx.fillText(header.toUpperCase(), padding, canvas.height - 120);
 
-            ctx.font = `bold ${baseFontSize * 0.8}px Plus Jakarta Sans`;
+            ctx.font = `900 ${baseFontSize * 0.8}px Plus Jakarta Sans`;
             const fullAddr = state.currentAddr;
             const words = fullAddr.split(' ');
             let line = '';
             let yOffset = 100;
+            const textMaxWidth = canvas.width - 300; // Leave room for right badge
+
             for (let word of words) {
                 let testLine = line + word + ' ';
-                if (ctx.measureText(testLine).width > (canvas.width - 300)) {
+                if (ctx.measureText(testLine).width > textMaxWidth) {
                     ctx.fillText(line, padding, canvas.height - yOffset);
                     line = word + ' ';
                     yOffset -= baseFontSize * 1.1;
@@ -644,14 +663,15 @@
             ctx.fillText(line, padding, canvas.height - yOffset);
 
             // Coordinates and Timestamp
+            ctx.fillStyle = "#3b82f6";
+            ctx.font = `900 ${baseFontSize * 0.8}px Plus Jakarta Sans`;
+            ctx.fillText(`LAT: ${state.currentLat.toFixed(6)} | LONG: ${state.currentLng.toFixed(6)}`, padding, canvas.height - 45);
             ctx.fillStyle = "#94a3b8";
-            ctx.font = `bold ${baseFontSize * 0.8}px Plus Jakarta Sans`;
-            ctx.fillText(`LAT: ${state.currentLat.toFixed(6)}° | LONG: ${state.currentLng.toFixed(6)}°`, padding, canvas.height - 45);
-            ctx.fillText(formatDateTime(), padding, canvas.height - 20);
+            ctx.fillText(formatDateTime().toUpperCase(), padding, canvas.height - 20);
 
             const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
             
-            // 3. UI Multi-tray Update
+            // 3. UI Tray Update
             const grid = document.getElementById('multi-preview-grid');
             const placeholder = document.getElementById('upload-placeholder');
             const uploadLayer = document.getElementById('cam-upload-overlay');
@@ -667,7 +687,7 @@
                 <button onclick="window.downloadBlob('${dataUrl}')" class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center rounded-xl transition-opacity text-white font-black text-[9px] uppercase">Download</button>`;
             grid.appendChild(wrap);
 
-            // 4. Cloud Async
+            // 4. Cloud Sync
             state.isUploading = true;
             try {
                 const fd = new FormData();
@@ -686,7 +706,7 @@
             const l = document.createElement('a'); l.href = base64; l.download = `CivicGram_Evidence_${Date.now()}.jpg`; l.click();
         };
 
-        // --- 6. ROUTER & NAVIGATION ENGINE ---
+        // --- 7. ROUTER & NAVIGATION ENGINE (Last to load) ---
 
         async function handleNavigation() {
             const viewport = document.getElementById('viewport');
@@ -708,7 +728,7 @@
                 const { data: p } = await sb.from('profiles').select('id, username').eq('username', param).single();
                 if (!p) return window.location.hash = '#/feed';
                 const { data: list } = await sb.from('follows').select(`profiles:${sub === 'followers' ? 'follower_id' : 'following_id'}(*)`).eq(sub === 'followers' ? 'following_id' : 'follower_id', p.id);
-                viewport.innerHTML = `<div class="bg-white rounded-[40px] border border-slate-100 overflow-hidden shadow-sm page-transition text-slate-900"><header class="p-10 border-b border-slate-50 flex items-center space-x-6 sticky top-0 bg-white/90 backdrop-blur-md z-10"><button onclick="window.history.back()" class="p-3 hover:bg-slate-50 rounded-2xl transition-all"><i data-lucide="arrow-left" class="w-6 h-6 text-slate-900"></i></button><h2 class="text-[10px] font-black uppercase tracking-widest">${sub} - @${param}</h2></header><div class="p-4 space-y-4">${(list || []).map(item => { const u = item.profiles; return `<div class="flex items-center justify-between p-5 bg-slate-50 rounded-[28px] cursor-pointer" onclick="window.location.hash='#/u/${u.username}'"><div class="flex items-center space-x-4"><div class="w-12 h-12 rounded-[14px] overflow-hidden bg-slate-200 border border-slate-300">${u.avatar_url ? `<img src="${u.avatar_url}" class="w-full h-full object-cover">` : `<div class="w-full h-full flex items-center justify-center font-black text-slate-400 uppercase">${u.username[0]}</div>`}</div><div><p class="text-sm font-black text-slate-900">@${u.username}</p><p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">${u.display_name || 'Citizen'}</p></div></div><i data-lucide="arrow-right" class="text-slate-300 w-5 h-5"></i></div>`; }).join('')}</div></div>`;
+                viewport.innerHTML = `<div class="bg-white rounded-[40px] border border-slate-100 overflow-hidden shadow-sm page-transition text-slate-900"><header class="p-10 border-b border-slate-50 flex items-center space-x-6 sticky top-0 bg-white/90 backdrop-blur-md z-10"><button onclick="window.history.back()" class="p-3 hover:bg-slate-50 rounded-2xl transition-all"><i data-lucide="arrow-left" class="w-6 h-6"></i></button><h2 class="text-[10px] font-black uppercase tracking-widest">${sub} - @${param}</h2></header><div class="p-4 space-y-4">${(list || []).map(item => { const u = item.profiles; return `<div class="flex items-center justify-between p-5 bg-slate-50 rounded-[28px] cursor-pointer" onclick="window.location.hash='#/u/${u.username}'"><div class="flex items-center space-x-4"><div class="w-12 h-12 rounded-[14px] overflow-hidden bg-slate-200 border border-slate-300 shadow-inner">${u.avatar_url ? `<img src="${u.avatar_url}" class="w-full h-full object-cover">` : `<div class="w-full h-full flex items-center justify-center font-black text-slate-400 uppercase italic">${u.username[0]}</div>`}</div><div><p class="text-sm font-black text-slate-900 uppercase italic tracking-tighter">@${u.username}</p><p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">${u.display_name || 'Citizen'}</p></div></div><i data-lucide="arrow-right" class="text-slate-300 w-5 h-5"></i></div>`; }).join('')}</div></div>`;
                 lucide.createIcons();
             } else {
                 switch(route) {
@@ -783,14 +803,14 @@
                 const fd = new FormData(); fd.append('image', blob);
                 const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, { method: 'POST', body: fd });
                 const d = await res.json();
-                if (d.success) { state.tempImageUrls = [d.data.url]; showToast("Avatar Ready"); }
+                if (d.success) { state.tempImageUrls = [d.data.url]; showToast("Avatar Contextualized"); }
                 state.isUploading = false;
             });
         }
 
-        function renderSearch(c) { c.innerHTML = '<div class="p-24 text-center"><h2 class="text-3xl font-black text-slate-900 uppercase italic mb-10 tracking-tighter text-slate-900">Discovery Hub</h2><input placeholder="Filter reports..." class="w-full p-8 bg-white rounded-[40px] border border-slate-100 outline-none font-black text-blue-700 tracking-tight placeholder:text-slate-200 shadow-xl"></div>'; lucide.createIcons(); }
+        function renderSearch(c) { c.innerHTML = '<div class="p-24 text-center"><h2 class="text-3xl font-black text-slate-900 uppercase italic mb-10 tracking-tighter text-slate-900 leading-none">Discovery Hub</h2><input placeholder="Filter reports..." class="w-full p-8 bg-white rounded-[40px] border border-slate-100 outline-none font-black text-blue-700 tracking-tight placeholder:text-slate-200 shadow-xl"></div>'; lucide.createIcons(); }
         function renderNotifications(c) { c.innerHTML = `<div class="bg-white rounded-[48px] border border-slate-100 p-12 h-full page-transition text-slate-900"><h2 class="text-2xl font-black text-slate-900 uppercase italic mb-12">Action Logs</h2><div class="space-y-6">${state.notifications.map(n => `<div class="flex items-center space-x-6 p-6 bg-slate-50 rounded-[32px] cursor-pointer hover:bg-slate-100 transition-all shadow-sm" onclick="window.location.hash='#/post/${n.post_id}'"><div class="w-14 h-14 rounded-[20px] bg-slate-900 flex items-center justify-center text-white shadow-xl shadow-slate-200"><i data-lucide="${n.type === 'upvote' ? 'shield-alert' : 'message-square'}" class="w-6 h-6"></i></div><div class="text-sm font-bold text-slate-700 leading-tight"><strong>@${n.actor_username}</strong> backed your report action.</div></div>`).join('')}</div></div>`; lucide.createIcons(); }
-        function renderAuth(c) { const isSignUp = state.authMode === 'signup'; c.innerHTML = `<div class="max-w-md mx-auto py-24 text-center px-8 page-transition"><div class="w-20 h-20 bg-blue-700 rounded-[32px] flex items-center justify-center mx-auto mb-8 shadow-2xl rotate-3 text-white"><i data-lucide="shield-check" class="text-white w-10 h-10"></i></div><h2 class="text-4xl font-black text-slate-900 italic uppercase">${isSignUp ? 'Establish ID' : 'Identify'}</h2><form onsubmit="handleAuth(event)" class="space-y-4">${isSignUp ? '<div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm"><input type="text" id="auth-user" placeholder="@handle" required class="w-full outline-none font-bold"></div>' : ''}<div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm"><input type="email" id="email" placeholder="Email" required class="w-full outline-none font-bold"></div><div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm"><input type="password" id="password" placeholder="Pass" required class="w-full outline-none font-bold"></div><button type="submit" class="w-full py-5 bg-slate-900 text-white rounded-3xl font-black uppercase tracking-widest shadow-xl">Identify</button></form><p onclick="state.authMode = '${isSignUp ? 'login' : 'signup'}'; state.currentView = null; handleNavigation();" class="text-xs font-black text-blue-600 mt-10 cursor-pointer uppercase underline">Switch Portal</p></div>`; lucide.createIcons(); }
+        function renderAuth(c) { const isSignUp = state.authMode === 'signup'; c.innerHTML = `<div class="max-w-md mx-auto py-24 text-center px-8 page-transition text-slate-900"><div class="w-20 h-20 bg-blue-700 rounded-[32px] flex items-center justify-center mx-auto mb-8 shadow-2xl rotate-3 text-white"><i data-lucide="shield-check" class="text-white w-10 h-10"></i></div><h2 class="text-4xl font-black text-slate-900 italic uppercase">${isSignUp ? 'Establish ID' : 'Identify'}</h2><form onsubmit="handleAuth(event)" class="space-y-4 text-slate-900">${isSignUp ? '<div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm"><input type="text" id="auth-user" placeholder="@handle" required class="w-full outline-none font-bold text-slate-900"></div>' : ''}<div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm"><input type="email" id="email" placeholder="Email" required class="w-full outline-none font-bold text-slate-900"></div><div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm"><input type="password" id="password" placeholder="Pass" required class="w-full outline-none font-bold text-slate-900"></div><button type="submit" class="w-full py-5 bg-slate-900 text-white rounded-3xl font-black uppercase tracking-widest shadow-xl">Identify</button></form><p onclick="state.authMode = '${isSignUp ? 'login' : 'signup'}'; state.currentView = null; handleNavigation();" class="text-xs font-black text-blue-600 mt-10 cursor-pointer uppercase underline">Switch Portal</p></div>`; lucide.createIcons(); }
         function renderEditProfile(c) { c.innerHTML = `<div class="bg-white rounded-[40px] border border-slate-100 overflow-hidden shadow-sm page-transition text-slate-900"><header class="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/50 text-slate-900"><h2 class="text-xs font-black uppercase text-slate-900">Refine ID</h2><button form="edit-profile-form" type="submit" id="save-profile-btn" class="bg-blue-600 text-white px-8 py-3 rounded-2xl font-black text-xs uppercase shadow-lg">Update</button></header><form id="edit-profile-form" onsubmit="handleUpdateProfile(event)" class="p-8 space-y-8"><div class="flex flex-col items-center space-y-6"><div class="avatar-lg upload-wrapper shadow-inner" id="avatar-preview">${state.user.avatar_url ? `<img src="${state.user.avatar_url}" class="w-full h-full object-cover">` : `<div class="w-full h-full bg-slate-100 flex items-center justify-center text-slate-300"><i data-lucide="user"></i></div>`}<input type="file" id="p-avatar" accept="image/*" onchange="handleImageSelection(event, 'avatar-preview', 'save-profile-btn')"></div></div><div class="space-y-6 text-slate-900"><div class="bg-slate-50 p-6 rounded-[24px] text-slate-900"><label class="block text-[8px] text-slate-400 font-black uppercase mb-2">Display Name</label><input id="p-display-name" type="text" value="${state.user.display_name || ''}" class="w-full bg-transparent border-none outline-none font-bold text-slate-900"></div><div class="bg-slate-50 p-6 rounded-[24px] text-slate-900"><label class="block text-[8px] text-slate-400 font-black uppercase mb-2">Bio</label><textarea id="p-bio" rows="2" class="w-full bg-transparent border-none outline-none font-bold text-slate-900 resize-none">${state.user.bio || ''}</textarea></div></div></form></div>`; lucide.createIcons(); }
 
         window.onload = init;
