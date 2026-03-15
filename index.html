@@ -36,6 +36,7 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
+        /* Dashboard Shell */
         #app-shell { display: flex; min-height: 100vh; width: 100%; }
 
         #sidebar {
@@ -80,8 +81,6 @@
         .grid-4 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
         .grid-item { width: 100%; height: 100%; object-fit: cover; }
 
-        .status-pill { padding: 6px 14px; border-radius: 100px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
-
         #fullscreen-overlay, #cropper-overlay, #camera-overlay {
             display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.98);
             z-index: 2000; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(12px);
@@ -103,11 +102,10 @@
             background: #f8fafc; transition: all 0.2s; cursor: pointer; position: relative;
             overflow: hidden; min-height: 250px;
         }
-        .upload-area:hover { border-color: var(--civic-accent); background: #f1f5f9; }
 
         #video-feed {
             width: 100%; max-width: 500px; border-radius: 32px; background: black;
-            box-shadow: 0 30px 60px rgba(0,0,0,0.6);
+            box-shadow: 0 30px 60px rgba(0,0,0,0.6); transform: scaleX(-1);
         }
         
         .camera-trigger {
@@ -156,10 +154,11 @@
         <video id="video-feed" autoplay playsinline class="mx-4"></video>
         
         <div class="mt-10 flex items-center space-x-12 z-10">
-            <button onclick="captureFrame()" class="camera-trigger">
+            <button id="capture-btn" onclick="captureFrame()" class="camera-trigger shadow-2xl">
                 <div class="w-full h-full rounded-full border-[6px] border-slate-900 m-1"></div>
             </button>
         </div>
+        <p class="text-white/40 text-[9px] font-black uppercase mt-8 tracking-[5px]">Align & Capture Evidence</p>
     </div>
 
     <div id="cropper-overlay">
@@ -231,14 +230,35 @@
             stream: null
         };
 
-        // --- 2. DATA INFRASTRUCTURE (Hoisted) ---
+        // --- 2. INFRASTRUCTURE & DATA HELPERS (Hoisted) ---
         
+        function parseImages(imgData) {
+            if (!imgData) return []; if (Array.isArray(imgData)) return imgData;
+            try { if (typeof imgData === 'string' && imgData.trim().startsWith('[')) return JSON.parse(imgData); return [imgData]; } catch (e) { return [imgData]; }
+        }
+
+        function showToast(m) {
+            const c = document.getElementById('toast-container');
+            if (!c) return;
+            const t = document.createElement('div');
+            t.className = "bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest px-8 py-4 rounded-2xl shadow-2xl mb-4 animate-in slide-in-from-right duration-300";
+            t.innerText = m; c.appendChild(t); setTimeout(() => t.remove(), 4000);
+        }
+
         async function reverseGeocode(lat, lng) {
             try {
                 const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
                 const data = await res.json();
                 return data.display_name || `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
             } catch (e) { return `${lat.toFixed(4)}, ${lng.toFixed(4)}`; }
+        }
+
+        function formatDateTime() {
+            const now = new Date();
+            const date = now.toLocaleDateString('en-GB').split('/').join('/');
+            const time = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+            const offset = '+05:30'; // Static for national context or dynamic via now.getTimezoneOffset()
+            return `${date} ${time} GMT ${offset}`;
         }
 
         async function fetchNotifications() { 
@@ -250,6 +270,23 @@
         }
 
         async function fetchPosts() { const { data } = await sb.from('posts').select('*, comments(*)').order('created_at', { ascending: false }); state.posts = data || []; }
+
+        function updateGlobalUI() {
+            const authS = document.getElementById('sidebar-auth-zone');
+            const mobA = document.getElementById('mobile-auth-header');
+            const sideA = document.getElementById('sidebar-avatar');
+            if (state.user) {
+                authS.innerHTML = `<button onclick="handleLogout()" class="w-full py-4 border border-slate-100 rounded-2xl font-black text-[10px] uppercase text-slate-400 hover:bg-slate-50 transition-colors">Sign Out</button>`;
+                const imgTag = `<img src="${state.user.avatar_url}" class="w-full h-full object-cover">`;
+                mobA.innerHTML = `<div onclick="window.location.hash='#/u'" class="w-10 h-10 rounded-[14px] overflow-hidden bg-slate-100 flex items-center justify-center text-[10px] font-black uppercase cursor-pointer border border-white shadow-sm">${state.user.avatar_url ? imgTag : state.user.username[0]}</div>`;
+                sideA.innerHTML = state.user.avatar_url ? imgTag : state.user.username[0];
+            } else {
+                authS.innerHTML = `<button onclick="window.location.hash='#/auth'" class="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl">Sign In</button>`;
+                mobA.innerHTML = `<i data-lucide="user" class="w-6 h-6 text-slate-300 cursor-pointer" onclick="window.location.hash='#/auth'"></i>`;
+                sideA.innerHTML = `<i data-lucide="user"></i>`;
+            }
+            lucide.createIcons();
+        }
 
         async function syncUser(user) {
             if (user) {
@@ -268,71 +305,50 @@
             updateGlobalUI();
         }
 
-        function updateGlobalUI() {
-            const authS = document.getElementById('sidebar-auth-zone');
-            const mobA = document.getElementById('mobile-auth-header');
-            const sideA = document.getElementById('sidebar-avatar');
-            if (state.user) {
-                authS.innerHTML = `<button onclick="handleLogout()" class="w-full py-4 border border-slate-100 rounded-2xl font-black text-[10px] uppercase text-slate-400 hover:bg-slate-50 transition-colors">Sign Out</button>`;
-                const img = `<img src="${state.user.avatar_url}" class="w-full h-full object-cover">`;
-                mobA.innerHTML = `<div onclick="window.location.hash='#/u'" class="w-10 h-10 rounded-[14px] overflow-hidden bg-slate-100 flex items-center justify-center text-[10px] font-black uppercase cursor-pointer border border-white shadow-sm">${state.user.avatar_url ? img : state.user.username[0]}</div>`;
-                sideA.innerHTML = state.user.avatar_url ? img : state.user.username[0];
-            } else {
-                authS.innerHTML = `<button onclick="window.location.hash='#/auth'" class="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl">Sign In</button>`;
-                mobA.innerHTML = `<i data-lucide="user" class="w-6 h-6 text-slate-300 cursor-pointer" onclick="window.location.hash='#/auth'"></i>`;
-                sideA.innerHTML = `<i data-lucide="user"></i>`;
-            }
-            lucide.createIcons();
-        }
+        // --- 3. SYSTEM GLOBAL HANDLERS ---
 
-        // --- 3. SYSTEM HANDLERS ---
+        window.handlePostGallery = (postId, index) => {
+            const post = state.posts.find(p => p.id == postId);
+            if (post) openFullscreen(post.image, index);
+        };
 
         window.handlePostUpvote = async (postId) => {
             if (!state.user) { window.location.hash = '#/auth'; return; }
             const post = state.posts.find(p => p.id == postId); if (!post) return;
-            const heartEls = document.querySelectorAll(`[id^="heart-${postId}"]`);
-            const countEls = document.querySelectorAll(`[id^="vote-count-${postId}"]`);
             const isLiked = state.myLikes.includes(postId);
-            const count = parseInt(countEls[0]?.innerText || 0);
-
             if (isLiked) {
                 state.myLikes = state.myLikes.filter(id => id !== postId);
-                heartEls.forEach(el => el.classList.remove('active'));
-                countEls.forEach(el => el.innerText = `${Math.max(0, count - 1)}`);
                 await sb.from('post_upvotes').delete().match({ post_id: postId, user_id: state.user.id });
             } else {
                 state.myLikes.push(postId);
-                heartEls.forEach(el => el.classList.add('active', 'animate-pulse'));
-                countEls.forEach(el => el.innerText = `${count + 1}`);
                 await sb.from('post_upvotes').insert({ post_id: postId, user_id: state.user.id });
                 if (post.author_id !== state.user.id) await sb.from('notifications').insert({ user_id: post.author_id, actor_id: state.user.id, actor_username: state.user.username, post_id: postId, type: 'upvote' });
             }
+            handleNavigation(); // Refresh view
         };
 
         window.handlePostSave = async (postId) => {
             if (!state.user) { window.location.hash = '#/auth'; return; }
             const isSaved = state.mySaves.includes(postId);
-            const saveEls = document.querySelectorAll(`[id^="save-${postId}"]`);
             if (isSaved) {
                 state.mySaves = state.mySaves.filter(id => id !== postId);
-                saveEls.forEach(el => el.classList.remove('saved'));
                 await sb.from('post_saves').delete().match({ post_id: postId, user_id: state.user.id });
                 showToast("Removed Archive");
             } else {
                 state.mySaves.push(postId);
-                saveEls.forEach(el => el.classList.add('saved'));
                 await sb.from('post_saves').insert({ post_id: postId, user_id: state.user.id });
                 showToast("Saved Archive");
             }
+            handleNavigation();
         };
 
         window.handleShare = async (postId) => {
             const url = `${window.location.origin}${window.location.pathname}#/post/${postId}`;
             if (navigator.share) {
-                try { await navigator.share({ title: 'CivicGram Case', text: 'Citizen action required.', url }); } catch(e) {}
+                try { await navigator.share({ title: 'CivicGram Case', text: 'Citizen Action Evidence.', url }); } catch(e) {}
             } else {
                 const el = document.createElement('textarea'); el.value = url; document.body.appendChild(el); el.select(); document.execCommand('copy'); document.body.removeChild(el);
-                showToast("Link Copied to Clipboard");
+                showToast("URL Copied to Clipboard");
             }
         };
 
@@ -345,7 +361,6 @@
             } else {
                 state.myFollows.push(targetUserId);
                 await sb.from('follows').insert({ follower_id: state.user.id, following_id: targetUserId });
-                showToast("Connection Synced");
             }
             const parts = window.location.hash.split('/');
             if (parts[1] === 'u') renderProfile(document.getElementById('viewport'), parts[2]);
@@ -390,13 +405,67 @@
                             <div class="p-8">
                                 <p class="text-[16px] leading-relaxed text-slate-700 font-medium mb-8">${post.description}</p>
                                 <div class="grid grid-cols-4 gap-2 border-t border-slate-50 pt-8">
-                                    <button id="heart-${post.id}" onclick="window.handlePostUpvote(${post.id})" class="btn-action ${isLiked ? 'active' : ''}"><i data-lucide="shield-alert" class="w-5 h-5 mr-2"></i><span id="vote-count-${post.id}">${post.upvotes_count || 0}</span></button>
+                                    <button onclick="window.handlePostUpvote(${post.id})" class="btn-action ${isLiked ? 'active' : ''}"><i data-lucide="shield-alert" class="w-5 h-5 mr-2"></i><span>${post.upvotes_count || 0}</span></button>
                                     <button onclick="window.location.hash = '#/post/${post.id}'" class="btn-action"><i data-lucide="message-square" class="w-5 h-5 mr-2"></i><span>${post.comments?.length || 0}</span></button>
-                                    <button id="save-${post.id}" onclick="window.handlePostSave(${post.id})" class="btn-action ${isSaved ? 'saved' : ''}"><i data-lucide="bookmark" class="w-5 h-5"></i></button>
+                                    <button onclick="window.handlePostSave(${post.id})" class="btn-action ${isSaved ? 'saved' : ''}"><i data-lucide="bookmark" class="w-5 h-5"></i></button>
                                     <button onclick="window.handleShare(${post.id})" class="btn-action"><i data-lucide="share-2" class="w-5 h-5"></i></button>
                                 </div>
                             </div>
                         </article> `}).join('')}
+                </div>`;
+            lucide.createIcons();
+        }
+
+        async function renderPostDetail(c, id) {
+            const post = state.posts.find(p => p.id == id);
+            if (!post) return window.location.hash = '#/feed';
+            const { data: comments } = await sb.from('comments').select('*').eq('post_id', post.id).order('created_at', { ascending: true });
+            const images = parseImages(post.image);
+            const isLiked = state.myLikes.includes(post.id);
+            const isSaved = state.mySaves.includes(post.id);
+
+            c.innerHTML = `
+                <div class="bg-white rounded-[40px] border border-slate-100 overflow-hidden shadow-sm page-transition">
+                    <header class="p-8 border-b border-slate-50 flex items-center space-x-6 sticky top-0 bg-white/90 backdrop-blur-md z-10">
+                        <button onclick="window.history.back()" class="p-2 hover:bg-slate-50 rounded-xl transition-colors"><i data-lucide="arrow-left" class="w-6 h-6 text-slate-900"></i></button>
+                        <h2 class="text-[10px] font-black uppercase tracking-widest text-slate-900">Case Documentation Discussion</h2>
+                    </header>
+                    <div class="p-4 bg-slate-50 aspect-video flex overflow-x-auto snap-x snap-mandatory no-scrollbar">
+                        ${images.map((img, i) => `<img src="${img}" onclick="window.handlePostGallery(${post.id}, i)" class="w-full h-full object-contain snap-center flex-shrink-0 cursor-zoom-in">`).join('')}
+                    </div>
+                    <div class="p-8 border-b border-slate-50">
+                        <div class="flex items-start space-x-4 mb-8">
+                            <div class="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center font-black uppercase text-xs italic">${post.author[0]}</div>
+                            <div class="flex-1">
+                                <div class="flex items-center mb-1">
+                                     <div class="w-5 h-5 rounded-full overflow-hidden bg-slate-200 mr-2 flex items-center justify-center text-[7px] font-black">
+                                         ${post.author_avatar ? `<img src="${post.author_avatar}" class="w-full h-full object-cover">` : '@'}
+                                     </div>
+                                     <p class="text-sm font-black text-slate-900 uppercase italic tracking-tighter">@${post.author}</p>
+                                </div>
+                                <p class="text-[16px] leading-relaxed text-slate-800 font-medium">${post.description}</p>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-4 gap-2">
+                            <button onclick="window.handlePostUpvote(${post.id})" class="btn-action ${isLiked ? 'active' : ''}"><i data-lucide="shield-alert" class="w-5 h-5 mr-2"></i><span>${post.upvotes_count || 0}</span></button>
+                            <div class="btn-action"><i data-lucide="message-square" class="w-5 h-5 mr-2"></i><span>${comments?.length || 0}</span></div>
+                            <button onclick="window.handlePostSave(${post.id})" class="btn-action ${isSaved ? 'saved' : ''}"><i data-lucide="bookmark" class="w-5 h-5"></i></button>
+                            <button onclick="window.handleShare(${post.id})" class="btn-action"><i data-lucide="share-2" class="w-5 h-5"></i></button>
+                        </div>
+                    </div>
+                    <div class="p-8 space-y-6 bg-slate-50/20 min-h-[200px]">
+                        ${(comments || []).map(com => `
+                            <div class="flex items-start space-x-4 animate-in slide-in-from-bottom-2 duration-300">
+                                <div class="w-8 h-8 rounded-lg bg-white border border-slate-100 flex items-center justify-center font-bold text-[10px] text-slate-400 uppercase">@</div>
+                                <div class="flex-1 bg-white p-5 rounded-3xl border border-slate-100 shadow-sm text-sm font-medium">
+                                    <p class="text-slate-700 leading-relaxed"><span class="font-black text-slate-900 mr-2 italic tracking-tighter">@${com.username}</span>${com.content}</p>
+                                </div>
+                            </div>`).join('')}
+                    </div>
+                    <form onsubmit="submitComment(event, ${post.id})" class="p-8 border-t border-slate-50 bg-white flex items-center space-x-4">
+                        <input name="comment" placeholder="Add community context..." required class="flex-1 bg-slate-50 p-5 rounded-3xl border-none outline-none font-bold text-sm">
+                        <button type="submit" class="bg-blue-600 text-white p-5 rounded-3xl shadow-lg transition-transform active:scale-95"><i data-lucide="send" class="w-6 h-6"></i></button>
+                    </form>
                 </div>`;
             lucide.createIcons();
         }
@@ -420,7 +489,7 @@
             c.innerHTML = `
                 <div class="bg-white rounded-[40px] border border-slate-100 overflow-hidden shadow-sm page-transition">
                     <div class="px-8 py-12 flex flex-col items-center text-center">
-                        <div class="avatar-lg mb-6">${profile.avatar_url ? `<img src="${profile.avatar_url}" class="w-full h-full object-cover">` : `<div class="w-full h-full bg-slate-900 text-white flex items-center justify-center font-black text-3xl uppercase italic">${profile.username[0]}</div>`}</div>
+                        <div class="avatar-lg mb-6 border border-slate-100 shadow-inner">${profile.avatar_url ? `<img src="${profile.avatar_url}" class="w-full h-full object-cover">` : `<div class="w-full h-full bg-slate-900 text-white flex items-center justify-center font-black text-3xl uppercase italic">${profile.username[0]}</div>`}</div>
                         <h2 class="text-2xl font-black text-slate-900 tracking-tighter uppercase italic">${profile.display_name || profile.username}</h2>
                         <p class="text-blue-600 font-bold text-xs mt-1 tracking-widest">@${profile.username}</p>
                         <p class="text-sm text-slate-500 font-medium mt-4 max-w-sm">${profile.bio || 'National Action Monitor'}</p>
@@ -467,7 +536,7 @@
             c.innerHTML = `
                 <div class="bg-white rounded-[40px] shadow-sm border border-slate-100 overflow-hidden page-transition text-slate-900">
                     <header class="p-10 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
-                        <h2 class="text-xl font-black text-slate-900 italic tracking-tighter uppercase italic">Create Report</h2>
+                        <h2 class="text-xl font-black text-slate-900 italic tracking-tighter uppercase italic text-slate-900">Create Report</h2>
                         <button form="create-form" type="submit" id="submit-post-btn" class="bg-blue-700 text-white px-10 py-4 rounded-3xl font-black text-xs uppercase tracking-widest shadow-xl disabled:opacity-50">Transmit</button>
                     </header>
                     <form id="create-form" onsubmit="handleCreate(event)" class="p-10 space-y-10">
@@ -485,10 +554,10 @@
                             </div>
                         </div>
                         <div class="space-y-8">
-                            <textarea id="c-desc" placeholder="Evidence details and context..." required class="w-full text-xl p-4 outline-none border-none resize-none h-40 font-bold text-slate-900 bg-slate-50/30 rounded-3xl placeholder:text-slate-300 shadow-inner"></textarea>
+                            <textarea id="c-desc" placeholder="Details of the national incident..." required class="w-full text-xl p-4 outline-none border-none resize-none h-40 font-bold text-slate-900 bg-slate-50/30 rounded-3xl placeholder:text-slate-300 shadow-inner"></textarea>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div class="bg-slate-50 p-6 rounded-[32px] border border-slate-100 shadow-sm"><label class="block text-[10px] text-slate-400 font-black uppercase mb-3">Location</label><input id="c-loc" type="text" placeholder="Resolving Address..." required class="w-full bg-transparent border-none outline-none font-black text-blue-600"></div>
-                                <div class="bg-slate-50 p-6 rounded-[32px] border border-slate-100 shadow-sm"><label class="block text-[10px] text-slate-400 font-black uppercase mb-3">Authority Type</label><select id="c-cat" class="w-full bg-transparent border-none outline-none font-black text-slate-700">${state.categories.map(cat => `<option>${cat}</option>`).join('')}</select></div>
+                                <div class="bg-slate-50 p-6 rounded-[32px] border border-slate-100 shadow-sm"><label class="block text-[10px] text-slate-400 font-black uppercase mb-3">Authority Category</label><select id="c-cat" class="w-full bg-transparent border-none outline-none font-black text-slate-700">${state.categories.map(cat => `<option>${cat}</option>`).join('')}</select></div>
                             </div>
                         </div>
                     </form>
@@ -497,7 +566,7 @@
             if (state.currentAddr) document.getElementById('c-loc').value = state.currentAddr;
         }
 
-        // --- 5. CAMERA & OVERLAY ENGINE ---
+        // --- 5. CAMERA & CAPTURE LOGIC ---
 
         async function startCamera() {
             const overlay = document.getElementById('camera-overlay');
@@ -508,8 +577,7 @@
                 video.srcObject = state.stream;
                 state.currentAddr = await reverseGeocode(state.currentLat, state.currentLng);
                 document.getElementById('cam-address').innerText = state.currentAddr.toUpperCase();
-                const locInp = document.getElementById('c-loc');
-                if (locInp) locInp.value = state.currentAddr;
+                if (document.getElementById('c-loc')) document.getElementById('c-loc').value = state.currentAddr;
             } catch (e) { showToast("Camera Access Denied"); stopCamera(); }
         }
 
@@ -520,50 +588,70 @@
 
         async function captureFrame() {
             const video = document.getElementById('video-feed');
+            const captureBtn = document.getElementById('capture-btn');
+            captureBtn.disabled = true;
+
             const canvas = document.createElement('canvas');
             canvas.width = video.videoWidth; canvas.height = video.videoHeight;
             const ctx = canvas.getContext('2d');
             
-            // 1. Draw Mirror-corrected frame (environment mode is mirrored by default in many viewfinders)
+            // 1. Draw Mirror-corrected frame
             ctx.translate(canvas.width, 0); ctx.scale(-1, 1);
             ctx.drawImage(video, 0, 0);
             ctx.setTransform(1, 0, 0, 1, 0, 0);
 
-            // 2. Adaptive Meta Overlay Calculation
-            const barHeight = Math.floor(canvas.height * 0.16);
+            // 2. High-Fidelity Professional Overlay
+            const barHeight = Math.floor(canvas.height * 0.18);
             const padding = Math.floor(canvas.width * 0.05);
-            const fontSize = Math.max(16, Math.floor(canvas.height * 0.03));
+            const baseFontSize = Math.max(14, Math.floor(canvas.height * 0.025));
             
-            // Background Bar
-            ctx.fillStyle = "rgba(15, 23, 42, 0.8)";
+            // Dark gradient bar background
+            const gradient = ctx.createLinearGradient(0, canvas.height - barHeight, 0, canvas.height);
+            gradient.addColorStop(0, 'rgba(0,0,0,0)');
+            gradient.addColorStop(0.3, 'rgba(15, 23, 42, 0.9)');
+            gradient.addColorStop(1, 'rgba(15, 23, 42, 1)');
+            ctx.fillStyle = gradient;
             ctx.fillRect(0, canvas.height - barHeight, canvas.width, barHeight);
             
+            // Branding/Icon Placeholder Style on Right
+            ctx.fillStyle = "rgba(59, 130, 246, 0.2)";
+            ctx.beginPath(); ctx.roundRect(canvas.width - 240, canvas.height - 110, 210, 80, 12); ctx.fill();
             ctx.fillStyle = "white";
-            ctx.font = `900 ${fontSize}px Plus Jakarta Sans`;
-            
-            // Text Wrapping Engine for Human Address
-            const addrWords = state.currentAddr.split(' ');
-            let line = '';
-            let y = canvas.height - (barHeight * 0.65);
-            const maxWidth = canvas.width - (padding * 2);
+            ctx.font = `900 ${baseFontSize * 1.2}px Plus Jakarta Sans`;
+            ctx.fillText("GPS MAP CAMERA", canvas.width - 225, canvas.height - 75);
+            ctx.font = `bold ${baseFontSize * 0.7}px Plus Jakarta Sans`;
+            ctx.fillText("CIVICGRAM EVIDENCE", canvas.width - 225, canvas.height - 50);
 
-            for (let word of addrWords) {
+            // Detailed Human Address Text
+            ctx.fillStyle = "white";
+            ctx.font = `900 ${baseFontSize * 1.3}px Plus Jakarta Sans`;
+            const header = state.currentAddr.split(',').slice(0, 3).join(',').trim();
+            ctx.fillText(header.toUpperCase(), padding, canvas.height - 120);
+
+            ctx.font = `bold ${baseFontSize * 0.8}px Plus Jakarta Sans`;
+            const fullAddr = state.currentAddr;
+            const words = fullAddr.split(' ');
+            let line = '';
+            let yOffset = 100;
+            for (let word of words) {
                 let testLine = line + word + ' ';
-                if (ctx.measureText(testLine).width > maxWidth) {
-                    ctx.fillText(line, padding, y);
+                if (ctx.measureText(testLine).width > (canvas.width - 300)) {
+                    ctx.fillText(line, padding, canvas.height - yOffset);
                     line = word + ' ';
-                    y += fontSize * 1.3;
+                    yOffset -= baseFontSize * 1.1;
                 } else { line = testLine; }
             }
-            ctx.fillText(line, padding, y);
-            
-            ctx.fillStyle = "#3b82f6";
-            ctx.font = `900 ${fontSize * 0.7}px Plus Jakarta Sans`;
-            ctx.fillText(`CIVICGRAM EVIDENCE TRACE: ${new Date().toLocaleString().toUpperCase()}`, padding, canvas.height - (barHeight * 0.15));
+            ctx.fillText(line, padding, canvas.height - yOffset);
+
+            // Coordinates and Timestamp
+            ctx.fillStyle = "#94a3b8";
+            ctx.font = `bold ${baseFontSize * 0.8}px Plus Jakarta Sans`;
+            ctx.fillText(`LAT: ${state.currentLat.toFixed(6)}° | LONG: ${state.currentLng.toFixed(6)}°`, padding, canvas.height - 45);
+            ctx.fillText(formatDateTime(), padding, canvas.height - 20);
 
             const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
             
-            // 3. UI Tray Update
+            // 3. UI Multi-tray Update
             const grid = document.getElementById('multi-preview-grid');
             const placeholder = document.getElementById('upload-placeholder');
             const uploadLayer = document.getElementById('cam-upload-overlay');
@@ -576,25 +664,29 @@
             wrap.className = "relative group h-24";
             wrap.innerHTML = `
                 <img src="${dataUrl}" class="w-full h-full object-cover rounded-xl border border-slate-100 shadow-sm">
-                <button onclick="window.downloadBlob('${dataUrl}')" class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center rounded-xl transition-opacity text-white font-black text-[9px] uppercase">Save to Device</button>`;
+                <button onclick="window.downloadBlob('${dataUrl}')" class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center rounded-xl transition-opacity text-white font-black text-[9px] uppercase">Download</button>`;
             grid.appendChild(wrap);
 
-            // 4. Cloud Sync
+            // 4. Cloud Async
             state.isUploading = true;
             try {
                 const fd = new FormData();
                 fd.append('image', dataUrl.split(',')[1]);
                 const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, { method: 'POST', body: fd });
                 const d = await res.json();
-                if (d.success) { state.tempImageUrls.push(d.data.url); showToast("Evidence Staged"); }
-            } finally { state.isUploading = false; if(uploadLayer) uploadLayer.classList.add('hidden'); }
+                if (d.success) { state.tempImageUrls.push(d.data.url); showToast("Evidence Trace Captured"); }
+            } finally { 
+                state.isUploading = false; 
+                if(uploadLayer) uploadLayer.classList.add('hidden'); 
+                captureBtn.disabled = false;
+            }
         }
 
         window.downloadBlob = (base64) => {
             const l = document.createElement('a'); l.href = base64; l.download = `CivicGram_Evidence_${Date.now()}.jpg`; l.click();
         };
 
-        // --- 6. NAVIGATION & INIT ---
+        // --- 6. ROUTER & NAVIGATION ENGINE ---
 
         async function handleNavigation() {
             const viewport = document.getElementById('viewport');
@@ -616,7 +708,7 @@
                 const { data: p } = await sb.from('profiles').select('id, username').eq('username', param).single();
                 if (!p) return window.location.hash = '#/feed';
                 const { data: list } = await sb.from('follows').select(`profiles:${sub === 'followers' ? 'follower_id' : 'following_id'}(*)`).eq(sub === 'followers' ? 'following_id' : 'follower_id', p.id);
-                viewport.innerHTML = `<div class="bg-white rounded-[40px] border border-slate-100 overflow-hidden shadow-sm page-transition text-slate-900"><header class="p-10 border-b border-slate-50 flex items-center space-x-6 sticky top-0 bg-white/90 backdrop-blur-md z-10"><button onclick="window.history.back()" class="p-3 hover:bg-slate-50 rounded-2xl transition-all"><i data-lucide="arrow-left" class="w-6 h-6"></i></button><h2 class="text-[10px] font-black uppercase tracking-widest">${sub} of @${param}</h2></header><div class="p-4 space-y-4">${(list || []).map(item => { const u = item.profiles; return `<div class="flex items-center justify-between p-5 bg-slate-50 rounded-[28px] cursor-pointer" onclick="window.location.hash='#/u/${u.username}'"><div class="flex items-center space-x-4"><div class="w-12 h-12 rounded-[14px] overflow-hidden bg-slate-200 border border-slate-300">${u.avatar_url ? `<img src="${u.avatar_url}" class="w-full h-full object-cover">` : `<div class="w-full h-full flex items-center justify-center font-black text-slate-400 uppercase">${u.username[0]}</div>`}</div><div><p class="text-sm font-black text-slate-900">@${u.username}</p><p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">${u.display_name || 'Citizen'}</p></div></div><i data-lucide="arrow-right" class="text-slate-300 w-5 h-5"></i></div>`; }).join('')}</div></div>`;
+                viewport.innerHTML = `<div class="bg-white rounded-[40px] border border-slate-100 overflow-hidden shadow-sm page-transition text-slate-900"><header class="p-10 border-b border-slate-50 flex items-center space-x-6 sticky top-0 bg-white/90 backdrop-blur-md z-10"><button onclick="window.history.back()" class="p-3 hover:bg-slate-50 rounded-2xl transition-all"><i data-lucide="arrow-left" class="w-6 h-6 text-slate-900"></i></button><h2 class="text-[10px] font-black uppercase tracking-widest">${sub} - @${param}</h2></header><div class="p-4 space-y-4">${(list || []).map(item => { const u = item.profiles; return `<div class="flex items-center justify-between p-5 bg-slate-50 rounded-[28px] cursor-pointer" onclick="window.location.hash='#/u/${u.username}'"><div class="flex items-center space-x-4"><div class="w-12 h-12 rounded-[14px] overflow-hidden bg-slate-200 border border-slate-300">${u.avatar_url ? `<img src="${u.avatar_url}" class="w-full h-full object-cover">` : `<div class="w-full h-full flex items-center justify-center font-black text-slate-400 uppercase">${u.username[0]}</div>`}</div><div><p class="text-sm font-black text-slate-900">@${u.username}</p><p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">${u.display_name || 'Citizen'}</p></div></div><i data-lucide="arrow-right" class="text-slate-300 w-5 h-5"></i></div>`; }).join('')}</div></div>`;
                 lucide.createIcons();
             } else {
                 switch(route) {
@@ -639,10 +731,10 @@
             const { data: { session } } = await sb.auth.getSession();
             await syncUser(session?.user);
 
-            sb.auth.onAuthStateChange(async (e, s) => { 
-                await syncUser(s?.user); 
-                if (e === 'SIGNED_IN' && window.location.hash.includes('auth')) window.location.hash = '#/feed';
-                else if (e === 'SIGNED_OUT') window.location.hash = '#/auth';
+            sb.auth.onAuthStateChange(async (event, session) => {
+                await syncUser(session?.user);
+                if (event === 'SIGNED_IN' && window.location.hash.includes('auth')) window.location.hash = '#/feed';
+                else if (event === 'SIGNED_OUT') window.location.hash = '#/auth';
             });
 
             sb.channel('public:posts').on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, async () => {
@@ -656,7 +748,7 @@
             if ("geolocation" in navigator) navigator.geolocation.getCurrentPosition((p) => { state.currentLat = p.coords.latitude; state.currentLng = p.coords.longitude; }, () => {});
         }
 
-        // Shared Standard Handlers
+        // Shared Standard Page Handlers
         async function handleLogout() { await sb.auth.signOut(); }
         async function submitComment(e, pId) { e.preventDefault(); const c = e.target.comment.value.trim(); if (!c || !state.user) return; await sb.from('comments').insert({ post_id: pId, user_id: state.user.id, username: state.user.username, content: c }); e.target.reset(); await fetchPosts(); renderPostDetail(document.getElementById('viewport'), pId); }
         async function handleAuth(e) { e.preventDefault(); const email = document.getElementById('email').value; const password = document.getElementById('password').value; const btn = e.target.querySelector('button'); btn.disabled = true; try { if (state.authMode === 'signup') { const u = document.getElementById('auth-user').value; await sb.auth.signUp({ email, password, options: { data: { username: u } } }); showToast("Check Inbox"); } else { await sb.auth.signInWithPassword({ email, password }); } } catch(err) { showToast(err.message); btn.disabled = false; } }
@@ -679,7 +771,7 @@
             try {
                 const { error } = await sb.from('profiles').update({ display_name: document.getElementById('p-display-name').value, bio: document.getElementById('p-bio').value, avatar_url: state.tempImageUrls[0] || state.user.avatar_url, updated_at: new Date() }).eq('id', state.user.id);
                 if (error) throw error;
-                showToast("Identity Updated"); window.location.hash = '#/u';
+                showToast("Identity Refined"); window.location.hash = '#/u';
             } catch (err) { alert(err.message); btn.disabled = false; }
         }
 
