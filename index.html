@@ -703,4 +703,158 @@
 
             // Cloud Sync
             state.isUploading = true;
-            fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, { method: 'POST', body:
+            fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, { method: 'POST', body: (function(){ const fd = new FormData(); fd.append('image', dataUrl.split(',')[1]); return fd; })() })
+                .then(res => res.json())
+                .then(d => { if (d.success) { state.tempImageUrls.push(d.data.url); showToast("Evidence Trace Captured"); } })
+                .finally(() => { state.isUploading = false; if(uploadLayer) uploadLayer.classList.add('hidden'); });
+
+            discardCapture();
+        }
+
+        function discardCapture() {
+            document.getElementById('capture-review-overlay').style.display = 'none';
+            state.currentCapture = null;
+        }
+
+        window.removeEvidence = (index) => {
+            state.tempImageUrls.splice(index, 1);
+            const grid = document.getElementById('multi-preview-grid');
+            const items = grid.querySelectorAll('.evidence-tray-item');
+            if (items[index]) items[index].remove();
+            if (state.tempImageUrls.length === 0) {
+                 grid.classList.add('hidden');
+                 document.getElementById('upload-placeholder').style.display = 'flex';
+            }
+        };
+
+        window.downloadBlob = (base64) => {
+            const l = document.createElement('a'); l.href = base64; l.download = `CivicGram_Evidence_${Date.now()}.jpg`; l.click();
+        };
+
+        // --- 6. NAVIGATION ENGINE ---
+
+        async function handleNavigation() {
+            const viewport = document.getElementById('viewport');
+            const hash = window.location.hash || '#/feed';
+            const parts = hash.split('/');
+            const route = parts[1] || 'feed';
+            const param = parts[2];
+            const sub = parts[3];
+
+            const viewKey = route + (param || '') + (sub || '') + (route === 'auth' ? state.authMode : '');
+            if (state.currentView === viewKey && route !== 'feed') return; 
+            state.currentView = viewKey;
+
+            if (['create', 'notifications', 'edit-profile'].includes(route) && !state.user) { window.location.hash = '#/auth'; return; }
+            document.querySelectorAll('.nav-link, .nav-btn').forEach(btn => btn.classList.toggle('active', btn.getAttribute('data-route') === route));
+            window.scrollTo(0, 0);
+
+            if (route === 'u' && (sub === 'followers' || sub === 'following')) {
+                const { data: p } = await sb.from('profiles').select('id, username').eq('username', param).single();
+                if (!p) return window.location.hash = '#/feed';
+                const { data: list } = await sb.from('follows').select(`profiles:${sub === 'followers' ? 'follower_id' : 'following_id'}(*)`).eq(sub === 'followers' ? 'following_id' : 'follower_id', p.id);
+                viewport.innerHTML = `<div class="bg-white rounded-[40px] border border-slate-100 overflow-hidden shadow-sm page-transition text-slate-900"><header class="p-10 border-b border-slate-50 flex items-center space-x-6 sticky top-0 bg-white/90 backdrop-blur-md z-10"><button onclick="window.history.back()" class="p-3 hover:bg-slate-50 rounded-2xl transition-all"><i data-lucide="arrow-left" class="w-6 h-6"></i></button><h2 class="text-[10px] font-black uppercase tracking-widest">${sub} - @${param}</h2></header><div class="p-4 space-y-4">${(list || []).map(item => { const u = item.profiles; return `<div class="flex items-center justify-between p-5 bg-slate-50 rounded-[28px] cursor-pointer" onclick="window.location.hash='#/u/${u.username}'"><div class="flex items-center space-x-4"><div class="w-12 h-12 rounded-[14px] overflow-hidden bg-slate-200 border border-slate-300 shadow-inner">${u.avatar_url ? `<img src="${u.avatar_url}" class="w-full h-full object-cover">` : `<div class="w-full h-full flex items-center justify-center font-black text-slate-400 uppercase italic">${u.username[0]}</div>`}</div><div><p class="text-sm font-black text-slate-900 uppercase italic tracking-tighter">@${u.username}</p><p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">${u.display_name || 'Citizen'}</p></div></div><i data-lucide="arrow-right" class="text-slate-300 w-5 h-5"></i></div>`; }).join('')}</div></div>`;
+                lucide.createIcons();
+            } else {
+                switch(route) {
+                    case 'feed': renderFeed(viewport); break;
+                    case 'auth': renderAuth(viewport); break;
+                    case 'create': renderCreate(viewport); break;
+                    case 'u': await renderProfile(viewport, param); break;
+                    case 'edit-profile': renderEditProfile(viewport); break;
+                    case 'notifications': renderNotifications(viewport); break;
+                    case 'post': await renderPostDetail(viewport, param); break;
+                    case 'search': renderSearch(viewport); break;
+                    case 'map': renderMap(viewport); break;
+                    default: window.location.hash = '#/feed';
+                }
+            }
+            lucide.createIcons();
+        }
+
+        async function init() {
+            const { data: { session } } = await sb.auth.getSession();
+            await syncUser(session?.user);
+
+            sb.auth.onAuthStateChange(async (event, session) => {
+                await syncUser(session?.user);
+                if (event === 'SIGNED_IN' && window.location.hash.includes('auth')) window.location.hash = '#/feed';
+                else if (event === 'SIGNED_OUT') window.location.hash = '#/auth';
+            });
+
+            sb.channel('public:posts').on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, async () => {
+                await fetchPosts(); if (window.location.hash === '#/feed') renderFeed(document.getElementById('viewport'));
+            }).subscribe();
+            
+            await fetchPosts();
+            window.addEventListener('hashchange', handleNavigation);
+            handleNavigation();
+
+            if ("geolocation" in navigator) navigator.geolocation.getCurrentPosition((p) => { state.currentLat = p.coords.latitude; state.currentLng = p.coords.longitude; }, () => {});
+        }
+
+        // Shared Standard Page Handlers
+        async function handleLogout() { await sb.auth.signOut(); }
+        async function submitComment(e, pId) { e.preventDefault(); const c = e.target.comment.value.trim(); if (!c || !state.user) return; await sb.from('comments').insert({ post_id: pId, user_id: state.user.id, username: state.user.username, content: c }); e.target.reset(); await fetchPosts(); renderPostDetail(document.getElementById('viewport'), pId); }
+        async function handleAuth(e) { e.preventDefault(); const email = document.getElementById('email').value; const password = document.getElementById('password').value; const btn = e.target.querySelector('button'); btn.disabled = true; try { if (state.authMode === 'signup') { const u = document.getElementById('auth-user').value; await sb.auth.signUp({ email, password, options: { data: { username: u } } }); showToast("Check Inbox"); } else { await sb.auth.signInWithPassword({ email, password }); } } catch(err) { showToast(err.message); btn.disabled = false; } }
+
+        async function handleCreate(e) {
+            e.preventDefault();
+            const btn = document.getElementById('submit-post-btn');
+            if (!state.tempImageUrls.length) return showToast("Capture evidence first");
+            btn.disabled = true;
+            try {
+                const { error } = await sb.from('posts').insert([{ author: state.user.username, author_id: state.user.id, author_avatar: state.user.avatar_url || null, image: JSON.stringify(state.tempImageUrls), category: document.getElementById('c-cat').value, location: document.getElementById('c-loc').value, description: document.getElementById('c-desc').value, status: 'Pending', latitude: state.currentLat, longitude: state.currentLng }]);
+                if (error) throw error;
+                showToast("Evidence Transmitted Successfully"); window.location.hash = '#/feed';
+            } catch (err) { alert(err.message); btn.disabled = false; }
+        }
+
+        async function handleUpdateProfile(e) {
+            e.preventDefault();
+            const btn = document.getElementById('save-profile-btn'); btn.disabled = true;
+            try {
+                const { error } = await sb.from('profiles').update({ display_name: document.getElementById('p-display-name').value, bio: document.getElementById('p-bio').value, avatar_url: state.tempImageUrls[0] || state.user.avatar_url, updated_at: new Date() }).eq('id', state.user.id);
+                if (error) throw error;
+                showToast("Identity Refined"); window.location.hash = '#/u';
+            } catch (err) { alert(err.message); btn.disabled = false; }
+        }
+
+        async function applyCrop() {
+            const canvas = state.cropper.getCroppedCanvas({ width: 500, height: 500 });
+            closeCropper();
+            state.isUploading = true;
+            canvas.toBlob(async (blob) => {
+                const fd = new FormData(); fd.append('image', blob);
+                const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, { method: 'POST', body: fd });
+                const d = await res.json();
+                if (d.success) { state.tempImageUrls = [d.data.url]; showToast("Avatar Contextualized"); }
+                state.isUploading = false;
+            });
+        }
+
+        function renderSearch(c) { c.innerHTML = '<div class="p-24 text-center"><h2 class="text-3xl font-black text-slate-900 uppercase italic mb-10 tracking-tighter text-slate-900 leading-none">Discovery Hub</h2><input placeholder="Filter reports..." class="w-full p-8 bg-white rounded-[40px] border border-slate-100 outline-none font-black text-blue-700 tracking-tight placeholder:text-slate-200 shadow-xl"></div>'; lucide.createIcons(); }
+        function renderNotifications(c) { c.innerHTML = `<div class="bg-white rounded-[48px] border border-slate-100 p-12 h-full page-transition text-slate-900"><h2 class="text-2xl font-black text-slate-900 uppercase italic mb-12">Action Logs</h2><div class="space-y-6">${state.notifications.map(n => `<div class="flex items-center space-x-6 p-6 bg-slate-50 rounded-[32px] cursor-pointer hover:bg-slate-100 transition-all shadow-sm" onclick="window.location.hash='#/post/${n.post_id}'"><div class="w-14 h-14 rounded-[20px] bg-slate-900 flex items-center justify-center text-white shadow-xl shadow-slate-200"><i data-lucide="${n.type === 'upvote' ? 'shield-alert' : 'message-square'}" class="w-6 h-6"></i></div><div class="text-sm font-bold text-slate-700 leading-tight"><strong>@${n.actor_username}</strong> backed your report action.</div></div>`).join('')}</div></div>`; lucide.createIcons(); }
+        function renderAuth(c) { const isSignUp = state.authMode === 'signup'; c.innerHTML = `<div class="max-w-md mx-auto py-24 text-center px-8 page-transition text-slate-900"><div class="w-20 h-20 bg-blue-700 rounded-[32px] flex items-center justify-center mx-auto mb-8 shadow-2xl rotate-3 text-white"><i data-lucide="shield-check" class="text-white w-10 h-10"></i></div><h2 class="text-4xl font-black text-slate-900 italic uppercase">${isSignUp ? 'Establish ID' : 'Identify'}</h2><form onsubmit="handleAuth(event)" class="space-y-4 text-slate-900">${isSignUp ? '<div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm"><input type="text" id="auth-user" placeholder="@handle" required class="w-full outline-none font-bold text-slate-900"></div>' : ''}<div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm"><input type="email" id="email" placeholder="Email" required class="w-full outline-none font-bold text-slate-900"></div><div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm"><input type="password" id="password" placeholder="Pass" required class="w-full outline-none font-bold text-slate-900"></div><button type="submit" class="w-full py-5 bg-slate-900 text-white rounded-3xl font-black uppercase tracking-widest shadow-xl">Identify</button></form><p onclick="state.authMode = '${isSignUp ? 'login' : 'signup'}'; state.currentView = null; handleNavigation();" class="text-xs font-black text-blue-600 mt-10 cursor-pointer uppercase underline">Switch Portal</p></div>`; lucide.createIcons(); }
+        function renderEditProfile(c) { c.innerHTML = `<div class="bg-white rounded-[40px] border border-slate-100 overflow-hidden shadow-sm page-transition text-slate-900"><header class="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/50 text-slate-900"><h2 class="text-xs font-black uppercase text-slate-900">Refine ID</h2><button form="edit-profile-form" type="submit" id="save-profile-btn" class="bg-blue-600 text-white px-8 py-3 rounded-2xl font-black text-xs uppercase shadow-lg">Update</button></header><form id="edit-profile-form" onsubmit="handleUpdateProfile(event)" class="p-8 space-y-8"><div class="flex flex-col items-center space-y-6"><div class="avatar-lg upload-wrapper shadow-inner" id="avatar-preview">${state.user.avatar_url ? `<img src="${state.user.avatar_url}" class="w-full h-full object-cover">` : `<div class="w-full h-full bg-slate-100 flex items-center justify-center text-slate-300"><i data-lucide="user"></i></div>`}<input type="file" id="p-avatar" accept="image/*" onchange="handleImageSelection(event, 'avatar-preview', 'save-profile-btn')"></div></div><div class="space-y-6 text-slate-900"><div class="bg-slate-50 p-6 rounded-[24px] text-slate-900"><label class="block text-[8px] text-slate-400 font-black uppercase mb-2">Display Name</label><input id="p-display-name" type="text" value="${state.user.display_name || ''}" class="w-full bg-transparent border-none outline-none font-bold text-slate-900"></div><div class="bg-slate-50 p-6 rounded-[24px] text-slate-900"><label class="block text-[8px] text-slate-400 font-black uppercase mb-2">Bio</label><textarea id="p-bio" rows="2" class="w-full bg-transparent border-none outline-none font-bold text-slate-900 resize-none">${state.user.bio || ''}</textarea></div></div></form></div>`; lucide.createIcons(); }
+
+        function handleImageSelection(event, previewId, buttonId) {
+            const files = Array.from(event.target.files || []);
+            if (!files.length) return;
+            if (previewId === 'avatar-preview') {
+                state.activePreviewId = previewId; state.activeBtnId = buttonId;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const target = document.getElementById('cropper-target'); target.src = e.target.result;
+                    document.getElementById('cropper-overlay').style.display = 'flex';
+                    if (state.cropper) state.cropper.destroy();
+                    state.cropper = new Cropper(target, { aspectRatio: 1, viewMode: 1 });
+                };
+                reader.readAsDataURL(files[0]);
+            }
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
