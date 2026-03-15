@@ -22,7 +22,6 @@
         :root {
             --civic-blue: #1e3a8a;
             --civic-accent: #3b82f6;
-            --civic-green: #10b981;
             --civic-bg: #f8fafc;
         }
 
@@ -30,20 +29,17 @@
             font-family: 'Plus Jakarta Sans', sans-serif;
             background-color: var(--civic-bg); 
             color: #1e293b;
-            margin: 0;
-            padding: 0;
-            overflow-x: hidden;
+            margin: 0; padding: 0; overflow-x: hidden;
         }
 
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-        /* Dashboard Shell */
         #app-shell { display: flex; min-height: 100vh; width: 100%; }
 
         #sidebar {
             width: 280px; height: 100vh; position: fixed; left: 0; top: 0;
-            background: #fff; border-right: 1px solid #e2e8f0; padding: 2rem 1.5rem;
+            background: #fff; border-right: 1px solid #e2e8f0; padding: 2.5rem 1.5rem;
             display: none; flex-direction: column; z-index: 100;
         }
 
@@ -72,7 +68,6 @@
         .report-card {
             background: white; border-radius: 28px; border: 1px solid #f1f5f9;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); margin-bottom: 2.5rem; overflow: hidden;
-            transition: all 0.3s ease;
         }
 
         .civic-grid { display: grid; gap: 4px; background: #fff; width: 100%; aspect-ratio: 16/10; overflow: hidden; cursor: pointer; }
@@ -82,6 +77,8 @@
         .grid-3 .grid-item:first-child { grid-row: span 2; }
         .grid-4 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
         .grid-item { width: 100%; height: 100%; object-fit: cover; }
+
+        .status-pill { padding: 6px 14px; border-radius: 100px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
 
         #fullscreen-overlay, #cropper-overlay, #camera-overlay {
             display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.98);
@@ -98,55 +95,60 @@
         .btn-action.active { color: #ef4444; background: #fef2f2; }
         .btn-action.saved { color: #3b82f6; background: #eff6ff; }
 
-        .upload-overlay {
-            position: absolute; inset: 0; background: rgba(30, 58, 138, 0.9);
-            display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; z-index: 50;
-        }
-
-        .profile-tab {
-            padding: 12px 24px; font-size: 11px; font-weight: 800; text-transform: uppercase; border-bottom: 3px solid transparent; color: #94a3b8; transition: all 0.2s;
-        }
-        .profile-tab.active { color: var(--civic-blue); border-bottom-color: var(--civic-blue); }
-
-        #map-container { 
-            height: calc(100vh - 150px); width: 100%; border-radius: 32px;
-            overflow: hidden; border: 8px solid white; box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        .upload-area {
+            border: 2px dashed #e2e8f0; border-radius: 32px; padding: 2.5rem;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            background: #f8fafc; transition: all 0.2s; cursor: pointer; position: relative;
+            overflow: hidden; min-height: 250px;
         }
 
         #video-feed {
-            width: 100%; max-width: 500px; border-radius: 24px; background: black;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            width: 100%; max-width: 500px; border-radius: 32px; background: black;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.6);
         }
+        
+        .camera-trigger {
+            width: 80px; height: 80px; border-radius: 50%; border: 6px solid rgba(255,255,255,0.2);
+            background: white; display: flex; items-center justify-center; transition: all 0.2s;
+        }
+        .camera-trigger:active { transform: scale(0.9); }
+
+        .profile-tab {
+            padding: 14px 24px; font-size: 11px; font-weight: 800; text-transform: uppercase; border-bottom: 3px solid transparent; color: #94a3b8; transition: all 0.2s;
+        }
+        .profile-tab.active { color: var(--civic-blue); border-bottom-color: var(--civic-blue); }
+        
+        .custom-pin { display: flex; flex-direction: column; align-items: center; justify-content: center; }
     </style>
 </head>
 <body>
 
-    <!-- GALLERY VIEW -->
+    <!-- OVERLAYS -->
     <div id="fullscreen-overlay">
         <button onclick="closeFullscreen()" class="absolute top-8 right-8 text-white p-3 hover:bg-white/10 rounded-full transition-all"><i data-lucide="x" class="w-8 h-8"></i></button>
         <button id="fs-prev" class="absolute left-8 top-1/2 -translate-y-1/2 text-white p-5 hover:bg-white/10 rounded-full transition-all hidden"><i data-lucide="chevron-left" class="w-10 h-10"></i></button>
-        <button id="fs-next" class="absolute right-8 top-1/2 -translate-y-1/2 text-white p-4 hover:bg-white/10 rounded-full transition-all hidden"><i data-lucide="chevron-right" class="w-10 h-10"></i></button>
+        <button id="fs-next" class="absolute right-8 top-1/2 -translate-y-1/2 text-white p-5 hover:bg-white/10 rounded-full transition-all hidden"><i data-lucide="chevron-right" class="w-10 h-10"></i></button>
         <img id="fullscreen-img" class="max-w-[95%] max-h-[85vh] object-contain rounded-2xl shadow-2xl">
         <div id="fs-counter" class="absolute bottom-12 text-white font-black bg-blue-600 px-8 py-2 rounded-full text-[10px] uppercase tracking-widest"></div>
     </div>
 
-    <!-- GEOTAG CAMERA OVERLAY -->
+    <!-- GEOTAG CAMERA -->
     <div id="camera-overlay">
-        <div class="absolute top-8 left-8 text-white">
-            <h3 class="font-black italic text-xl uppercase tracking-tighter">Geo-Tag Camera</h3>
-            <p id="cam-coords" class="text-[10px] font-bold text-blue-400 mt-1 uppercase tracking-widest">Syncing GPS...</p>
+        <div class="absolute top-10 left-10 text-white z-10 pointer-events-none pr-10">
+            <h3 class="font-black italic text-2xl uppercase tracking-tighter leading-none mb-2">Evidence Capture</h3>
+            <p id="cam-address" class="text-[10px] font-black text-blue-400 uppercase tracking-widest leading-relaxed">Resolving Address...</p>
         </div>
-        <button onclick="stopCamera()" class="absolute top-8 right-8 text-white p-3 hover:bg-white/10 rounded-full transition-all"><i data-lucide="x" class="w-8 h-8"></i></button>
+        <button onclick="stopCamera()" class="absolute top-8 right-8 text-white p-4 hover:bg-white/10 rounded-full z-20 transition-all"><i data-lucide="x" class="w-8 h-8"></i></button>
+        
         <video id="video-feed" autoplay playsinline class="mx-4"></video>
-        <div class="mt-8 flex items-center space-x-6">
-            <button onclick="captureFrame()" class="w-20 h-20 bg-white rounded-full p-1 border-4 border-white/20 hover:scale-110 transition-transform shadow-2xl flex items-center justify-center">
-                <div class="w-full h-full bg-white rounded-full border-2 border-slate-900"></div>
+        
+        <div class="mt-10 flex items-center space-x-12 z-10">
+            <button onclick="captureFrame()" class="camera-trigger">
+                <div class="w-full h-full rounded-full border-[6px] border-slate-900 m-1"></div>
             </button>
         </div>
-        <p class="text-white/40 text-[10px] font-black uppercase mt-6 tracking-[4px]">Align Evidence for Capture</p>
     </div>
 
-    <!-- CROPPER OVERLAY -->
     <div id="cropper-overlay">
         <div class="w-full max-w-lg bg-white rounded-[48px] overflow-hidden shadow-2xl flex flex-col mx-4 text-center">
             <div class="px-10 py-8 border-b flex justify-between items-center bg-slate-50/50">
@@ -159,11 +161,10 @@
     </div>
 
     <div id="app-shell">
-        <!-- SIDEBAR -->
         <aside id="sidebar">
             <div class="flex items-center space-x-4 mb-16 px-2">
                 <div class="w-12 h-12 bg-blue-700 rounded-[18px] flex items-center justify-center shadow-2xl shadow-blue-200"><i data-lucide="database" class="text-white w-6 h-6"></i></div>
-                <h1 onclick="window.location.hash = '#/feed'" class="logo-font text-2xl cursor-pointer italic">CivicGram</h1>
+                <h1 onclick="window.location.hash = '#/feed'" class="logo-font text-2xl cursor-pointer italic text-slate-900">CivicGram</h1>
             </div>
             <nav class="flex-1">
                 <div onclick="window.location.hash = '#/feed'" class="nav-link" data-route="feed"><i data-lucide="activity"></i><span>Live Feed</span></div>
@@ -172,7 +173,7 @@
                 <div onclick="window.location.hash = '#/notifications'" class="nav-link" data-route="notifications"><i data-lucide="bell"></i><span>Activity</span></div>
                 <div onclick="window.location.hash = '#/u'" class="nav-link" data-route="u">
                     <div id="sidebar-avatar" class="w-6 h-6 rounded-full bg-slate-100 mr-4 flex items-center justify-center text-[10px] font-bold border border-slate-200 uppercase overflow-hidden text-slate-800"><i data-lucide="user"></i></div>
-                    <span>My Account</span>
+                    <span>My Profile</span>
                 </div>
             </nav>
             <div id="sidebar-auth-zone" class="pt-8 border-t border-slate-100">
@@ -201,7 +202,7 @@
     <div id="toast-container" class="fixed bottom-28 right-6 z-[3000] flex flex-col items-end pointer-events-none"></div>
 
     <script type="text/javascript">
-        // --- 1. CORE CONFIG & STATE ---
+        // --- 1. CONFIGURATION & STATE ---
         const IMGBB_API_KEY = '0abf983309932d2a2eeb289d53d7c55c';
         const SB_URL = 'https://lsfdeyayvdyohbjnqizt.supabase.co';
         const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxzZmRleWF5dmR5b2hiam5xaXp0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3MDk5NTAsImV4cCI6MjA4NzI4NTk1MH0.7FonFhSDEqA6jfiT4JulxBZT_eIhIHvwoMycdyZlhC4';
@@ -211,13 +212,13 @@
             user: null, posts: [], notifications: [], myLikes: [], myFollows: [], mySaves: [],
             authMode: 'login', categories: ['Roads', 'Trash', 'Safety', 'Lights', 'Water', 'Parks'],
             isUploading: false, tempImageUrls: [],
-            currentLat: 20.5937, currentLng: 78.9629,
+            currentLat: 20.5937, currentLng: 78.9629, currentAddr: "Syncing Address...",
             currentView: null, profileTab: 'reports',
             cropper: null, activePreviewId: null, activeBtnId: null,
             stream: null
         };
 
-        // --- 2. DATA UTILITIES (Hoisted) ---
+        // --- 2. UTILITIES (Strict Declaration Order) ---
         
         function parseImages(imgData) {
             if (!imgData) return []; if (Array.isArray(imgData)) return imgData;
@@ -232,22 +233,16 @@
             t.innerText = m; c.appendChild(t); setTimeout(() => t.remove(), 4000);
         }
 
+        async function reverseGeocode(lat, lng) {
+            try {
+                const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+                const data = await res.json();
+                return data.display_name || `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+            } catch (e) { return `${lat.toFixed(4)}, ${lng.toFixed(4)}`; }
+        }
+
         function closeFullscreen() { document.getElementById('fullscreen-overlay').style.display = 'none'; }
         function closeCropper() { document.getElementById('cropper-overlay').style.display = 'none'; if (state.cropper) state.cropper.destroy(); }
-
-        function openFullscreen(imagesJson, index) {
-            const images = parseImages(imagesJson);
-            if (!images.length) return;
-            const overlay = document.getElementById('fullscreen-overlay');
-            const img = document.getElementById('fullscreen-img');
-            overlay.style.display = 'flex';
-            img.src = images[index];
-            document.getElementById('fs-counter').innerText = `${index+1} / ${images.length}`;
-            document.getElementById('fs-prev').classList.toggle('hidden', images.length <= 1);
-            document.getElementById('fs-next').classList.toggle('hidden', images.length <= 1);
-            document.getElementById('fs-prev').onclick = () => openFullscreen(images, (index - 1 + images.length) % images.length);
-            document.getElementById('fs-next').onclick = () => openFullscreen(images, (index + 1) % images.length);
-        }
 
         function updateGlobalUI() {
             const authS = document.getElementById('sidebar-auth-zone');
@@ -255,9 +250,9 @@
             const sideA = document.getElementById('sidebar-avatar');
             if (state.user) {
                 authS.innerHTML = `<button onclick="handleLogout()" class="w-full py-4 border border-slate-100 rounded-2xl font-black text-[10px] uppercase text-slate-400 hover:bg-slate-50 transition-colors">Sign Out</button>`;
-                const imgTag = `<img src="${state.user.avatar_url}" class="w-full h-full object-cover">`;
-                mobA.innerHTML = `<div onclick="window.location.hash='#/u'" class="w-10 h-10 rounded-[14px] overflow-hidden bg-slate-100 flex items-center justify-center text-[10px] font-black uppercase cursor-pointer border border-white shadow-sm">${state.user.avatar_url ? imgTag : state.user.username[0]}</div>`;
-                sideA.innerHTML = state.user.avatar_url ? imgTag : state.user.username[0];
+                const img = `<img src="${state.user.avatar_url}" class="w-full h-full object-cover">`;
+                mobA.innerHTML = `<div onclick="window.location.hash='#/u'" class="w-10 h-10 rounded-[14px] overflow-hidden bg-slate-100 flex items-center justify-center text-[10px] font-black uppercase cursor-pointer border border-white shadow-sm">${state.user.avatar_url ? img : state.user.username[0]}</div>`;
+                sideA.innerHTML = state.user.avatar_url ? img : state.user.username[0];
             } else {
                 authS.innerHTML = `<button onclick="window.location.hash='#/auth'" class="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl">Sign In</button>`;
                 mobA.innerHTML = `<i data-lucide="user" class="w-6 h-6 text-slate-300 cursor-pointer" onclick="window.location.hash='#/auth'"></i>`;
@@ -266,25 +261,21 @@
             lucide.createIcons();
         }
 
-        // --- 3. CORE LOGIC (Likes, Follow, Save, Share) ---
+        // --- 3. DATABASE HANDLERS ---
 
         window.handlePostUpvote = async (postId) => {
             if (!state.user) { window.location.hash = '#/auth'; return; }
             const post = state.posts.find(p => p.id == postId); if (!post) return;
             const heartEls = document.querySelectorAll(`[id^="heart-${postId}"]`);
-            const countEls = document.querySelectorAll(`[id^="vote-count-${postId}"]`);
             const isLiked = state.myLikes.includes(postId);
-            const count = parseInt(countEls[0]?.innerText || 0);
 
             if (isLiked) {
                 state.myLikes = state.myLikes.filter(id => id !== postId);
                 heartEls.forEach(el => el.classList.remove('active'));
-                countEls.forEach(el => el.innerText = `${Math.max(0, count - 1)}`);
                 await sb.from('post_upvotes').delete().match({ post_id: postId, user_id: state.user.id });
             } else {
                 state.myLikes.push(postId);
                 heartEls.forEach(el => el.classList.add('active', 'animate-pulse'));
-                countEls.forEach(el => el.innerText = `${count + 1}`);
                 await sb.from('post_upvotes').insert({ post_id: postId, user_id: state.user.id });
                 if (post.author_id !== state.user.id) await sb.from('notifications').insert({ user_id: post.author_id, actor_id: state.user.id, actor_username: state.user.username, post_id: postId, type: 'upvote' });
             }
@@ -320,51 +311,19 @@
         window.handleFollow = async (targetUserId) => {
             if (!state.user) { window.location.hash = '#/auth'; return; }
             const isFollowing = state.myFollows.includes(targetUserId);
-            const btn = document.getElementById('follow-btn');
             if (isFollowing) {
                 state.myFollows = state.myFollows.filter(id => id !== targetUserId);
-                if (btn) { btn.innerText = "Connect"; btn.classList.remove('bg-slate-100'); btn.classList.add('bg-blue-600', 'text-white'); }
                 await sb.from('follows').delete().match({ follower_id: state.user.id, following_id: targetUserId });
             } else {
                 state.myFollows.push(targetUserId);
-                if (btn) { btn.innerText = "Following"; btn.classList.add('bg-slate-100'); btn.classList.remove('bg-blue-600', 'text-white'); }
                 await sb.from('follows').insert({ follower_id: state.user.id, following_id: targetUserId });
-                showToast("Identity Network Synced");
+                showToast("Connection Synced");
             }
             const parts = window.location.hash.split('/');
             if (parts[1] === 'u') renderProfile(document.getElementById('viewport'), parts[2]);
         };
 
-        // --- 4. DATA ENGINE ---
-
-        async function fetchNotifications() { 
-            if (!state.user) return; 
-            const { data } = await sb.from('notifications').select('*').eq('user_id', state.user.id).order('created_at', { ascending: false }); 
-            state.notifications = data || []; 
-            const badge = document.getElementById('notif-badge');
-            if(badge) badge.classList.toggle('hidden', !state.notifications.some(n => !n.is_read)); 
-        }
-
-        async function fetchPosts() { const { data } = await sb.from('posts').select('*, comments(*)').order('created_at', { ascending: false }); state.posts = data || []; }
-
-        async function syncUser(user) {
-            if (user) {
-                const { data: profile } = await sb.from('profiles').select('*').eq('id', user.id).single();
-                state.user = { id: user.id, username: profile?.username || user.email.split('@')[0], display_name: profile?.display_name || profile?.username, avatar_url: profile?.avatar_url, bio: profile?.bio };
-                const [{ data: likes }, { data: follows }, { data: saves }] = await Promise.all([
-                    sb.from('post_upvotes').select('post_id').eq('user_id', user.id),
-                    sb.from('follows').select('following_id').eq('follower_id', user.id),
-                    sb.from('post_saves').select('post_id').eq('user_id', user.id)
-                ]);
-                state.myLikes = likes?.map(l => l.post_id) || [];
-                state.myFollows = follows?.map(f => f.following_id) || [];
-                state.mySaves = saves?.map(s => s.post_id) || [];
-                await fetchNotifications();
-            } else { state.user = null; state.myLikes = []; state.myFollows = []; state.mySaves = []; }
-            updateGlobalUI();
-        }
-
-        // --- 5. RENDERERS ---
+        // --- 4. RENDERERS ---
 
         function renderFeed(c) {
             c.innerHTML = `
@@ -436,10 +395,8 @@
                             <div class="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center font-black uppercase text-xs italic">${post.author[0]}</div>
                             <div class="flex-1">
                                 <div class="flex items-center mb-1">
-                                     <div class="w-5 h-5 rounded-full overflow-hidden bg-slate-200 mr-2 flex items-center justify-center text-[7px] font-black">
-                                         ${post.author_avatar ? `<img src="${post.author_avatar}" class="w-full h-full object-cover">` : '@'}
-                                     </div>
-                                     <p class="text-sm font-black text-slate-900 uppercase italic tracking-tighter">@${post.author}</p>
+                                     <div class="w-4 h-4 rounded-full overflow-hidden bg-slate-200 mr-2 flex items-center justify-center text-[6px] font-black">@</div>
+                                     <p class="text-sm font-black text-slate-900 uppercase italic">@${post.author}</p>
                                 </div>
                                 <p class="text-[16px] leading-relaxed text-slate-800 font-medium">${post.description}</p>
                             </div>
@@ -543,7 +500,7 @@
             c.innerHTML = `
                 <div class="bg-white rounded-[40px] shadow-sm border border-slate-100 overflow-hidden page-transition">
                     <header class="p-10 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
-                        <h2 class="text-xl font-black text-slate-900 italic tracking-tighter uppercase italic text-slate-900">Create Report</h2>
+                        <h2 class="text-xl font-black text-slate-900 italic tracking-tighter uppercase italic">Create Report</h2>
                         <button form="create-form" type="submit" id="submit-post-btn" class="bg-blue-700 text-white px-10 py-4 rounded-3xl font-black text-xs uppercase tracking-widest shadow-xl disabled:opacity-50">Transmit</button>
                     </header>
                     <form id="create-form" onsubmit="handleCreate(event)" class="p-10 space-y-10">
@@ -554,13 +511,17 @@
                                     <span class="text-[10px] font-black uppercase text-slate-400 group-hover:text-blue-600">Launch Geo-Tag Camera</span>
                                 </div>
                                 <div id="multi-preview-grid" class="hidden grid grid-cols-3 gap-2 w-full h-full absolute inset-0 p-4 bg-white z-10 overflow-y-auto"></div>
+                                <div id="cam-upload-overlay" class="hidden upload-overlay z-20">
+                                     <div class="w-10 h-10 border-4 border-white/20 border-t-white rounded-full animate-spin mb-4"></div>
+                                     <span class="text-[10px] font-black uppercase tracking-[3px]">Syncing Evidence...</span>
+                                </div>
                             </div>
                         </div>
                         <div class="space-y-8">
-                            <textarea id="c-desc" placeholder="Details of the national incident..." required class="w-full text-xl p-4 outline-none border-none resize-none h-40 font-bold text-slate-900 bg-slate-50/30 rounded-3xl placeholder:text-slate-300 shadow-inner"></textarea>
+                            <textarea id="c-desc" placeholder="Evidence details and context..." required class="w-full text-xl p-4 outline-none border-none resize-none h-40 font-bold text-slate-900 bg-slate-50/30 rounded-3xl placeholder:text-slate-300 shadow-inner"></textarea>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div class="bg-slate-50 p-6 rounded-[32px] border border-slate-100 shadow-sm"><label class="block text-[10px] text-slate-400 font-black uppercase mb-3">Location</label><input id="c-loc" type="text" placeholder="Area, City" required class="w-full bg-transparent border-none outline-none font-black text-blue-600"></div>
-                                <div class="bg-slate-50 p-6 rounded-[32px] border border-slate-100 shadow-sm"><label class="block text-[10px] text-slate-400 font-black uppercase mb-3">Authority Category</label><select id="c-cat" class="w-full bg-transparent border-none outline-none font-black text-slate-700">${state.categories.map(cat => `<option>${cat}</option>`).join('')}</select></div>
+                                <div class="bg-slate-50 p-6 rounded-[32px] border border-slate-100 shadow-sm"><label class="block text-[10px] text-slate-400 font-black uppercase mb-3">Report Location</label><input id="c-loc" type="text" placeholder="Area, City" required class="w-full bg-transparent border-none outline-none font-black text-blue-600"></div>
+                                <div class="bg-slate-50 p-6 rounded-[32px] border border-slate-100 shadow-sm"><label class="block text-[10px] text-slate-400 font-black uppercase mb-3">Authority Type</label><select id="c-cat" class="w-full bg-transparent border-none outline-none font-black text-slate-700">${state.categories.map(cat => `<option>${cat}</option>`).join('')}</select></div>
                             </div>
                         </div>
                     </form>
@@ -568,16 +529,17 @@
             lucide.createIcons();
         }
 
-        // --- 6. GEOTAG CAMERA ENGINE ---
+        // --- 5. CAMERA & CAPTURE LOGIC ---
 
         async function startCamera() {
             const overlay = document.getElementById('camera-overlay');
             const video = document.getElementById('video-feed');
             overlay.style.display = 'flex';
             try {
-                state.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
+                state.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment", width: { ideal: 1280 } }, audio: false });
                 video.srcObject = state.stream;
-                document.getElementById('cam-coords').innerText = `GPS: ${state.currentLat.toFixed(4)}, ${state.currentLng.toFixed(4)}`;
+                state.currentAddr = await reverseGeocode(state.currentLat, state.currentLng);
+                document.getElementById('cam-address').innerText = state.currentAddr.toUpperCase();
             } catch (e) { showToast("Camera Access Denied"); stopCamera(); }
         }
 
@@ -592,52 +554,71 @@
             canvas.width = video.videoWidth; canvas.height = video.videoHeight;
             const ctx = canvas.getContext('2d');
             
-            // 1. Draw Camera Frame
+            // Draw Mirror-corrected frame
+            ctx.translate(canvas.width, 0); ctx.scale(-1, 1);
             ctx.drawImage(video, 0, 0);
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+            // Adaptive Meta Overlay
+            const barHeight = canvas.height * 0.15;
+            const padding = canvas.width * 0.05;
+            const fontSize = Math.max(12, Math.floor(canvas.height * 0.025));
             
-            // 2. Add Geo-Tag Overlay
-            ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
-            ctx.fillRect(0, canvas.height - 120, canvas.width, 120);
+            ctx.fillStyle = "rgba(15, 23, 42, 0.75)";
+            ctx.fillRect(0, canvas.height - barHeight, canvas.width, barHeight);
+            
             ctx.fillStyle = "white";
-            ctx.font = "bold 24px Plus Jakarta Sans";
-            const text = `LOC: ${state.currentLat.toFixed(6)}, ${state.currentLng.toFixed(6)} | ${new Date().toLocaleString()}`;
-            ctx.fillText(text, 40, canvas.height - 65);
-            ctx.fillStyle = "#3b82f6";
-            ctx.fillText("CIVICGRAM | NATIONAL EVIDENCE TRACE", 40, canvas.height - 30);
-
-            const blobData = canvas.toDataURL('image/jpeg', 0.8);
+            ctx.font = `black ${fontSize}px Plus Jakarta Sans`;
             
-            // 3. UI Update: Show preview in grid
-            const grid = document.getElementById('multi-preview-grid');
-            grid.classList.remove('hidden');
-            const previewWrap = document.createElement('div');
-            previewWrap.className = "relative group h-24";
-            previewWrap.innerHTML = `
-                <img src="${blobData}" class="w-full h-full object-cover rounded-xl shadow-sm border border-slate-100">
-                <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center rounded-xl transition-opacity">
-                     <button onclick="downloadBlob('${blobData}')" class="p-1 bg-white rounded-full text-slate-900 mx-1"><svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
-                </div>`;
-            grid.appendChild(previewWrap);
+            // Multi-line wrap for address
+            const addrWords = state.currentAddr.split(' ');
+            let line = '';
+            let y = canvas.height - (barHeight * 0.65);
+            for (let word of addrWords) {
+                let testLine = line + word + ' ';
+                if (ctx.measureText(testLine).width > (canvas.width - (padding * 2))) {
+                    ctx.fillText(line, padding, y);
+                    line = word + ' ';
+                    y += fontSize * 1.2;
+                } else { line = testLine; }
+            }
+            ctx.fillText(line, padding, y);
+            
+            ctx.fillStyle = "#3b82f6";
+            ctx.fillText(`CIVICGRAM TRACE: ${new Date().toLocaleString().toUpperCase()}`, padding, canvas.height - (barHeight * 0.15));
 
-            // 4. Start Upload
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+            
+            // UI Tray
+            const grid = document.getElementById('multi-preview-grid');
+            const placeholder = document.getElementById('upload-placeholder');
+            const uploadLayer = document.getElementById('cam-upload-overlay');
+            
+            grid.classList.remove('hidden');
+            if (placeholder) placeholder.style.display = 'none';
+            if (uploadLayer) uploadLayer.classList.remove('hidden');
+
+            const wrap = document.createElement('div');
+            wrap.className = "relative group h-24";
+            wrap.innerHTML = `<img src="${dataUrl}" class="w-full h-full object-cover rounded-xl border border-slate-100 shadow-sm"><button onclick="window.downloadBlob('${dataUrl}')" class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center rounded-xl transition-opacity text-white font-black text-[9px] uppercase">Download</button>`;
+            grid.appendChild(wrap);
+
+            // Cloud Sync
             state.isUploading = true;
             try {
                 const fd = new FormData();
-                fd.append('image', blobData.split(',')[1]);
+                fd.append('image', dataUrl.split(',')[1]);
                 const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, { method: 'POST', body: fd });
                 const d = await res.json();
-                if (d.success) {
-                    state.tempImageUrls.push(d.data.url);
-                    showToast("Evidence Synced to Dashboard");
-                }
-            } finally { state.isUploading = false; stopCamera(); }
+                if (d.success) { state.tempImageUrls.push(d.data.url); showToast("Evidence Synced"); }
+            } finally { state.isUploading = false; if(uploadLayer) uploadLayer.classList.add('hidden'); stopCamera(); }
         }
 
         window.downloadBlob = (base64) => {
             const l = document.createElement('a'); l.href = base64; l.download = `CivicGram_Evidence_${Date.now()}.jpg`; l.click();
         };
 
-        // --- 7. NAVIGATION & INIT ---
+        // --- 6. NAVIGATION & APP ENGINE ---
 
         async function handleNavigation() {
             const viewport = document.getElementById('viewport');
@@ -676,18 +657,40 @@
         async function init() {
             const { data: { session } } = await sb.auth.getSession();
             await syncUser(session?.user);
-            sb.auth.onAuthStateChange(async (e, s) => { 
-                await syncUser(s?.user); 
-                if (e === 'SIGNED_IN' && window.location.hash.includes('auth')) window.location.hash = '#/feed';
-                else if (e === 'SIGNED_OUT') window.location.hash = '#/auth';
+
+            sb.auth.onAuthStateChange(async (event, session) => {
+                await syncUser(session?.user);
+                if (event === 'SIGNED_IN' && window.location.hash.includes('auth')) window.location.hash = '#/feed';
+                else if (event === 'SIGNED_OUT') window.location.hash = '#/auth';
             });
+
             sb.channel('public:posts').on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, async () => {
                 await fetchPosts(); if (window.location.hash === '#/feed') renderFeed(document.getElementById('viewport'));
             }).subscribe();
+            
             await fetchPosts();
             window.addEventListener('hashchange', handleNavigation);
             handleNavigation();
+
             if ("geolocation" in navigator) navigator.geolocation.getCurrentPosition((p) => { state.currentLat = p.coords.latitude; state.currentLng = p.coords.longitude; }, () => {});
+        }
+
+        // Standard logic stubs
+        function handleImageSelection(event, previewId, buttonId) {
+            const files = Array.from(event.target.files || []);
+            if (!files.length) return;
+            if (previewId === 'avatar-preview') {
+                state.activePreviewId = previewId; state.activeBtnId = buttonId;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const target = document.getElementById('cropper-target'); target.src = e.target.result;
+                    document.getElementById('cropper-overlay').style.display = 'flex';
+                    if (state.cropper) state.cropper.destroy();
+                    state.cropper = new Cropper(target, { aspectRatio: 1, viewMode: 1 });
+                };
+                reader.readAsDataURL(files[0]);
+                return;
+            }
         }
 
         async function handleLogout() { await sb.auth.signOut(); }
@@ -697,12 +700,12 @@
         async function handleCreate(e) {
             e.preventDefault();
             const btn = document.getElementById('submit-post-btn');
-            if (!state.tempImageUrls.length) return showToast("Add evidence first");
+            if (!state.tempImageUrls.length) return showToast("Capture evidence first");
             btn.disabled = true;
             try {
                 const { error } = await sb.from('posts').insert([{ author: state.user.username, author_id: state.user.id, author_avatar: state.user.avatar_url || null, image: JSON.stringify(state.tempImageUrls), category: document.getElementById('c-cat').value, location: document.getElementById('c-loc').value, description: document.getElementById('c-desc').value, status: 'Pending', latitude: state.currentLat, longitude: state.currentLng }]);
                 if (error) throw error;
-                showToast("Transmission Successful"); window.location.hash = '#/feed';
+                showToast("Evidence Transmitted"); window.location.hash = '#/feed';
             } catch (err) { alert(err.message); btn.disabled = false; }
         }
 
