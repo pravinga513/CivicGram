@@ -22,6 +22,7 @@
         :root {
             --civic-blue: #1e3a8a;
             --civic-accent: #3b82f6;
+            --civic-green: #10b981;
             --civic-bg: #f8fafc;
         }
 
@@ -68,6 +69,7 @@
         .report-card {
             background: white; border-radius: 28px; border: 1px solid #f1f5f9;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); margin-bottom: 2.5rem; overflow: hidden;
+            transition: all 0.3s ease;
         }
 
         .civic-grid { display: grid; gap: 4px; background: #fff; width: 100%; aspect-ratio: 16/10; overflow: hidden; cursor: pointer; }
@@ -101,6 +103,7 @@
             background: #f8fafc; transition: all 0.2s; cursor: pointer; position: relative;
             overflow: hidden; min-height: 250px;
         }
+        .upload-area:hover { border-color: var(--civic-accent); background: #f1f5f9; }
 
         #video-feed {
             width: 100%; max-width: 500px; border-radius: 32px; background: black;
@@ -109,7 +112,7 @@
         
         .camera-trigger {
             width: 80px; height: 80px; border-radius: 50%; border: 6px solid rgba(255,255,255,0.2);
-            background: white; display: flex; items-center justify-center; transition: all 0.2s;
+            background: white; display: flex; align-items: center; justify-content: center; transition: all 0.2s;
         }
         .camera-trigger:active { transform: scale(0.9); }
 
@@ -118,7 +121,17 @@
         }
         .profile-tab.active { color: var(--civic-blue); border-bottom-color: var(--civic-blue); }
         
+        #map-container { 
+            height: calc(100vh - 150px); width: 100%; border-radius: 32px;
+            overflow: hidden; border: 8px solid white; box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+
         .custom-pin { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+
+        .upload-overlay {
+            position: absolute; inset: 0; background: rgba(30, 58, 138, 0.9);
+            display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; z-index: 50;
+        }
     </style>
 </head>
 <body>
@@ -132,7 +145,7 @@
         <div id="fs-counter" class="absolute bottom-12 text-white font-black bg-blue-600 px-8 py-2 rounded-full text-[10px] uppercase tracking-widest"></div>
     </div>
 
-    <!-- GEOTAG CAMERA -->
+    <!-- GEOTAG CAMERA OVERLAY -->
     <div id="camera-overlay">
         <div class="absolute top-10 left-10 text-white z-10 pointer-events-none pr-10">
             <h3 class="font-black italic text-2xl uppercase tracking-tighter leading-none mb-2">Evidence Capture</h3>
@@ -173,7 +186,7 @@
                 <div onclick="window.location.hash = '#/notifications'" class="nav-link" data-route="notifications"><i data-lucide="bell"></i><span>Activity</span></div>
                 <div onclick="window.location.hash = '#/u'" class="nav-link" data-route="u">
                     <div id="sidebar-avatar" class="w-6 h-6 rounded-full bg-slate-100 mr-4 flex items-center justify-center text-[10px] font-bold border border-slate-200 uppercase overflow-hidden text-slate-800"><i data-lucide="user"></i></div>
-                    <span>My Profile</span>
+                    <span>My Account</span>
                 </div>
             </nav>
             <div id="sidebar-auth-zone" class="pt-8 border-t border-slate-100">
@@ -218,21 +231,8 @@
             stream: null
         };
 
-        // --- 2. UTILITIES (Strict Declaration Order) ---
+        // --- 2. DATA INFRASTRUCTURE (Hoisted) ---
         
-        function parseImages(imgData) {
-            if (!imgData) return []; if (Array.isArray(imgData)) return imgData;
-            try { if (typeof imgData === 'string' && imgData.trim().startsWith('[')) return JSON.parse(imgData); return [imgData]; } catch (e) { return [imgData]; }
-        }
-
-        function showToast(m) {
-            const c = document.getElementById('toast-container');
-            if (!c) return;
-            const t = document.createElement('div');
-            t.className = "bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest px-8 py-4 rounded-2xl shadow-2xl mb-4 animate-in slide-in-from-right duration-300";
-            t.innerText = m; c.appendChild(t); setTimeout(() => t.remove(), 4000);
-        }
-
         async function reverseGeocode(lat, lng) {
             try {
                 const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
@@ -241,8 +241,32 @@
             } catch (e) { return `${lat.toFixed(4)}, ${lng.toFixed(4)}`; }
         }
 
-        function closeFullscreen() { document.getElementById('fullscreen-overlay').style.display = 'none'; }
-        function closeCropper() { document.getElementById('cropper-overlay').style.display = 'none'; if (state.cropper) state.cropper.destroy(); }
+        async function fetchNotifications() { 
+            if (!state.user) return; 
+            const { data } = await sb.from('notifications').select('*').eq('user_id', state.user.id).order('created_at', { ascending: false }); 
+            state.notifications = data || []; 
+            const badge = document.getElementById('notif-badge');
+            if(badge) badge.classList.toggle('hidden', !state.notifications.some(n => !n.is_read)); 
+        }
+
+        async function fetchPosts() { const { data } = await sb.from('posts').select('*, comments(*)').order('created_at', { ascending: false }); state.posts = data || []; }
+
+        async function syncUser(user) {
+            if (user) {
+                const { data: profile } = await sb.from('profiles').select('*').eq('id', user.id).single();
+                state.user = { id: user.id, username: profile?.username || user.email.split('@')[0], display_name: profile?.display_name || profile?.username, avatar_url: profile?.avatar_url, bio: profile?.bio };
+                const [{ data: likes }, { data: follows }, { data: saves }] = await Promise.all([
+                    sb.from('post_upvotes').select('post_id').eq('user_id', user.id),
+                    sb.from('follows').select('following_id').eq('follower_id', user.id),
+                    sb.from('post_saves').select('post_id').eq('user_id', user.id)
+                ]);
+                state.myLikes = likes?.map(l => l.post_id) || [];
+                state.myFollows = follows?.map(f => f.following_id) || [];
+                state.mySaves = saves?.map(s => s.post_id) || [];
+                await fetchNotifications();
+            } else { state.user = null; state.myLikes = []; state.myFollows = []; state.mySaves = []; }
+            updateGlobalUI();
+        }
 
         function updateGlobalUI() {
             const authS = document.getElementById('sidebar-auth-zone');
@@ -261,21 +285,25 @@
             lucide.createIcons();
         }
 
-        // --- 3. DATABASE HANDLERS ---
+        // --- 3. SYSTEM HANDLERS ---
 
         window.handlePostUpvote = async (postId) => {
             if (!state.user) { window.location.hash = '#/auth'; return; }
             const post = state.posts.find(p => p.id == postId); if (!post) return;
             const heartEls = document.querySelectorAll(`[id^="heart-${postId}"]`);
+            const countEls = document.querySelectorAll(`[id^="vote-count-${postId}"]`);
             const isLiked = state.myLikes.includes(postId);
+            const count = parseInt(countEls[0]?.innerText || 0);
 
             if (isLiked) {
                 state.myLikes = state.myLikes.filter(id => id !== postId);
                 heartEls.forEach(el => el.classList.remove('active'));
+                countEls.forEach(el => el.innerText = `${Math.max(0, count - 1)}`);
                 await sb.from('post_upvotes').delete().match({ post_id: postId, user_id: state.user.id });
             } else {
                 state.myLikes.push(postId);
                 heartEls.forEach(el => el.classList.add('active', 'animate-pulse'));
+                countEls.forEach(el => el.innerText = `${count + 1}`);
                 await sb.from('post_upvotes').insert({ post_id: postId, user_id: state.user.id });
                 if (post.author_id !== state.user.id) await sb.from('notifications').insert({ user_id: post.author_id, actor_id: state.user.id, actor_username: state.user.username, post_id: postId, type: 'upvote' });
             }
@@ -301,10 +329,10 @@
         window.handleShare = async (postId) => {
             const url = `${window.location.origin}${window.location.pathname}#/post/${postId}`;
             if (navigator.share) {
-                try { await navigator.share({ title: 'CivicGram Case', text: 'Action Required', url }); } catch(e) {}
+                try { await navigator.share({ title: 'CivicGram Case', text: 'Citizen action required.', url }); } catch(e) {}
             } else {
                 const el = document.createElement('textarea'); el.value = url; document.body.appendChild(el); el.select(); document.execCommand('copy'); document.body.removeChild(el);
-                showToast("URL Copied to Clipboard");
+                showToast("Link Copied to Clipboard");
             }
         };
 
@@ -344,7 +372,7 @@
                                     </div>
                                     <div class="flex flex-col">
                                         <div class="flex items-center">
-                                            <div class="w-4 h-4 rounded-full overflow-hidden bg-slate-200 mr-2 flex items-center justify-center text-[6px] font-black">
+                                            <div class="w-4 h-4 rounded-full overflow-hidden bg-slate-200 mr-2 flex items-center justify-center text-[6px] font-black border border-slate-300">
                                                  ${post.author_avatar ? `<img src="${post.author_avatar}" class="w-full h-full object-cover">` : 'C'}
                                             </div>
                                             <p class="text-sm font-black text-slate-900 leading-tight italic uppercase tracking-tighter">@${post.author}</p>
@@ -369,58 +397,6 @@
                                 </div>
                             </div>
                         </article> `}).join('')}
-                </div>`;
-            lucide.createIcons();
-        }
-
-        async function renderPostDetail(c, id) {
-            const post = state.posts.find(p => p.id == id);
-            if (!post) return window.location.hash = '#/feed';
-            const { data: comments } = await sb.from('comments').select('*').eq('post_id', post.id).order('created_at', { ascending: true });
-            const images = parseImages(post.image);
-            const isLiked = state.myLikes.includes(post.id);
-            const isSaved = state.mySaves.includes(post.id);
-
-            c.innerHTML = `
-                <div class="bg-white rounded-[40px] border border-slate-100 overflow-hidden shadow-sm page-transition">
-                    <header class="p-8 border-b border-slate-50 flex items-center space-x-6 sticky top-0 bg-white/90 backdrop-blur-md z-10">
-                        <button onclick="window.history.back()" class="p-2 hover:bg-slate-50 rounded-xl transition-colors"><i data-lucide="arrow-left" class="w-6 h-6 text-slate-900"></i></button>
-                        <h2 class="text-[10px] font-black uppercase tracking-widest text-slate-900">National Case Documentation</h2>
-                    </header>
-                    <div class="p-4 bg-slate-50 aspect-video flex overflow-x-auto snap-x snap-mandatory no-scrollbar">
-                        ${images.map((img, i) => `<img src="${img}" onclick="window.handlePostGallery(${post.id}, i)" class="w-full h-full object-contain snap-center flex-shrink-0 cursor-zoom-in">`).join('')}
-                    </div>
-                    <div class="p-8 border-b border-slate-50">
-                        <div class="flex items-start space-x-4 mb-8">
-                            <div class="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center font-black uppercase text-xs italic">${post.author[0]}</div>
-                            <div class="flex-1">
-                                <div class="flex items-center mb-1">
-                                     <div class="w-4 h-4 rounded-full overflow-hidden bg-slate-200 mr-2 flex items-center justify-center text-[6px] font-black">@</div>
-                                     <p class="text-sm font-black text-slate-900 uppercase italic">@${post.author}</p>
-                                </div>
-                                <p class="text-[16px] leading-relaxed text-slate-800 font-medium">${post.description}</p>
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-4 gap-2">
-                            <button id="heart-dt-${post.id}" onclick="window.handlePostUpvote(${post.id})" class="btn-action ${isLiked ? 'active' : ''}"><i data-lucide="shield-alert" class="w-5 h-5 mr-2"></i><span id="vote-count-dt-${post.id}">${post.upvotes_count || 0}</span></button>
-                            <div class="btn-action"><i data-lucide="message-square" class="w-5 h-5 mr-2"></i><span>${comments?.length || 0}</span></div>
-                            <button id="save-dt-${post.id}" onclick="window.handlePostSave(${post.id})" class="btn-action ${isSaved ? 'saved' : ''}"><i data-lucide="bookmark" class="w-5 h-5"></i></button>
-                            <button onclick="window.handleShare(${post.id})" class="btn-action"><i data-lucide="share-2" class="w-5 h-5"></i></button>
-                        </div>
-                    </div>
-                    <div class="p-8 space-y-6 bg-slate-50/20 min-h-[200px]">
-                        ${(comments || []).map(com => `
-                            <div class="flex items-start space-x-4 animate-in slide-in-from-bottom-2 duration-300">
-                                <div class="w-8 h-8 rounded-lg bg-white border border-slate-100 flex items-center justify-center font-bold text-[10px] text-slate-400 uppercase">@</div>
-                                <div class="flex-1 bg-white p-5 rounded-3xl border border-slate-100 shadow-sm text-sm font-medium">
-                                    <p class="text-slate-700 leading-relaxed"><span class="font-black text-slate-900 mr-2 italic tracking-tighter">@${com.username}</span>${com.content}</p>
-                                </div>
-                            </div>`).join('')}
-                    </div>
-                    <form onsubmit="submitComment(event, ${post.id})" class="p-8 border-t border-slate-50 bg-white flex items-center space-x-4">
-                        <input name="comment" placeholder="Add community context..." required class="flex-1 bg-slate-50 p-5 rounded-3xl border-none outline-none font-bold text-sm">
-                        <button type="submit" class="bg-blue-600 text-white p-5 rounded-3xl shadow-lg transition-transform active:scale-95"><i data-lucide="send" class="w-6 h-6"></i></button>
-                    </form>
                 </div>`;
             lucide.createIcons();
         }
@@ -468,14 +444,6 @@
             lucide.createIcons();
         }
 
-        async function renderFollowList(c, username, type) {
-            const { data: profile } = await sb.from('profiles').select('id, username').eq('username', username).single();
-            if (!profile) return window.location.hash = '#/feed';
-            const { data: list } = await sb.from('follows').select(`profiles:${type === 'followers' ? 'follower_id' : 'following_id'}(*)`).eq(type === 'followers' ? 'following_id' : 'follower_id', profile.id);
-            c.innerHTML = `<div class="bg-white rounded-[40px] border border-slate-100 overflow-hidden shadow-sm page-transition"><header class="p-10 border-b border-slate-50 flex items-center space-x-6 sticky top-0 bg-white/90 backdrop-blur-md z-10"><button onclick="window.history.back()" class="p-3 hover:bg-slate-50 rounded-2xl transition-all"><i data-lucide="arrow-left" class="w-6 h-6 text-slate-900"></i></button><h2 class="text-[10px] font-black uppercase tracking-widest text-slate-900">${type} - @${username}</h2></header><div class="p-4 space-y-4">${(list || []).map(item => { const u = item.profiles; return `<div class="flex items-center justify-between p-5 bg-slate-50 rounded-[28px] cursor-pointer" onclick="window.location.hash='#/u/${u.username}'"><div class="flex items-center space-x-4"><div class="w-12 h-12 rounded-[14px] overflow-hidden bg-slate-200">${u.avatar_url ? `<img src="${u.avatar_url}" class="w-full h-full object-cover">` : `<div class="w-full h-full flex items-center justify-center font-black text-slate-400 uppercase">${u.username[0]}</div>`}</div><div><p class="text-sm font-black text-slate-900">@${u.username}</p><p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">${u.display_name || 'Citizen'}</p></div></div><i data-lucide="arrow-right" class="text-slate-300 w-5 h-5"></i></div>`; }).join('')}</div></div>`;
-            lucide.createIcons();
-        }
-
         function renderMap(c) {
             c.innerHTML = `<div id="map-container"></div>`;
             setTimeout(() => {
@@ -483,7 +451,6 @@
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
                 const grouped = {};
                 state.posts.forEach(p => { if (p.latitude && p.longitude) { const k = `${p.latitude},${p.longitude}`; (grouped[k] = grouped[k] || []).push(p); } });
-                const maxVotes = Math.max(...state.posts.map(p => p.upvotes_count || 0), 1);
                 Object.keys(grouped).forEach(k => {
                     const group = grouped[k].sort((a,b) => (b.upvotes_count || 0) - (a.upvotes_count || 0));
                     const top5 = group.slice(0, 5);
@@ -491,14 +458,14 @@
                     const color = avgVotes > 50 ? '#ef4444' : avgVotes > 10 ? '#8b5cf6' : '#3b82f6';
                     const [la, ln] = k.split(',').map(Number);
                     const icon = L.divIcon({ className: 'custom-pin', html: `<div style="color:${color}"><svg viewBox="0 0 24 24" width="36" height="36" stroke="currentColor" stroke-width="3" fill="white" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3" fill="currentColor"/></svg></div>`, iconSize: [36, 36], iconAnchor: [18, 36] });
-                    L.marker([la, ln], { icon }).addTo(map).bindPopup(`<div class="flex flex-col bg-white overflow-hidden rounded-2xl w-56 p-2"><h3 class="font-black text-[10px] uppercase text-slate-400 mb-3 px-2 tracking-widest">Area Hotspot (${group.length})</h3><div class="space-y-3">${top5.map(p => `<div class="flex items-center space-x-3 p-2 hover:bg-slate-50 rounded-xl cursor-pointer" onclick="window.location.hash='#/post/${p.id}'"><img src="${parseImages(p.image)[0]}" class="w-10 h-10 object-cover rounded-lg shadow-sm"><div class="flex-1 overflow-hidden"><p class="text-[9px] font-black text-blue-600">#${p.category}</p><p class="text-[10px] font-bold text-slate-800 truncate">${p.description}</p></div></div>`).join('')}</div></div>`);
+                    L.marker([la, ln], { icon }).addTo(map).bindPopup(`<div class="flex flex-col bg-white overflow-hidden rounded-2xl w-56 p-2"><h3 class="font-black text-[10px] uppercase text-slate-400 mb-3 px-2 tracking-widest italic">Area Hotspot (${group.length})</h3><div class="space-y-3">${top5.map(p => `<div class="flex items-center space-x-3 p-2 hover:bg-slate-50 rounded-xl cursor-pointer" onclick="window.location.hash='#/post/${p.id}'"><img src="${parseImages(p.image)[0]}" class="w-10 h-10 object-cover rounded-lg shadow-sm"><div class="flex-1 overflow-hidden"><p class="text-[9px] font-black text-blue-600">#${p.category}</p><p class="text-[10px] font-bold text-slate-800 truncate">${p.description}</p></div></div>`).join('')}</div></div>`);
                 });
             }, 100);
         }
 
         function renderCreate(c) {
             c.innerHTML = `
-                <div class="bg-white rounded-[40px] shadow-sm border border-slate-100 overflow-hidden page-transition">
+                <div class="bg-white rounded-[40px] shadow-sm border border-slate-100 overflow-hidden page-transition text-slate-900">
                     <header class="p-10 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
                         <h2 class="text-xl font-black text-slate-900 italic tracking-tighter uppercase italic">Create Report</h2>
                         <button form="create-form" type="submit" id="submit-post-btn" class="bg-blue-700 text-white px-10 py-4 rounded-3xl font-black text-xs uppercase tracking-widest shadow-xl disabled:opacity-50">Transmit</button>
@@ -510,7 +477,7 @@
                                     <i data-lucide="camera" class="w-12 h-12 text-slate-300 group-hover:text-blue-500 transition-colors mb-2"></i>
                                     <span class="text-[10px] font-black uppercase text-slate-400 group-hover:text-blue-600">Launch Geo-Tag Camera</span>
                                 </div>
-                                <div id="multi-preview-grid" class="hidden grid grid-cols-3 gap-2 w-full h-full absolute inset-0 p-4 bg-white z-10 overflow-y-auto"></div>
+                                <div id="multi-preview-grid" class="hidden grid grid-cols-3 gap-3 w-full h-full absolute inset-0 p-4 bg-white z-10 overflow-y-auto"></div>
                                 <div id="cam-upload-overlay" class="hidden upload-overlay z-20">
                                      <div class="w-10 h-10 border-4 border-white/20 border-t-white rounded-full animate-spin mb-4"></div>
                                      <span class="text-[10px] font-black uppercase tracking-[3px]">Syncing Evidence...</span>
@@ -520,26 +487,29 @@
                         <div class="space-y-8">
                             <textarea id="c-desc" placeholder="Evidence details and context..." required class="w-full text-xl p-4 outline-none border-none resize-none h-40 font-bold text-slate-900 bg-slate-50/30 rounded-3xl placeholder:text-slate-300 shadow-inner"></textarea>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div class="bg-slate-50 p-6 rounded-[32px] border border-slate-100 shadow-sm"><label class="block text-[10px] text-slate-400 font-black uppercase mb-3">Report Location</label><input id="c-loc" type="text" placeholder="Area, City" required class="w-full bg-transparent border-none outline-none font-black text-blue-600"></div>
+                                <div class="bg-slate-50 p-6 rounded-[32px] border border-slate-100 shadow-sm"><label class="block text-[10px] text-slate-400 font-black uppercase mb-3">Location</label><input id="c-loc" type="text" placeholder="Resolving Address..." required class="w-full bg-transparent border-none outline-none font-black text-blue-600"></div>
                                 <div class="bg-slate-50 p-6 rounded-[32px] border border-slate-100 shadow-sm"><label class="block text-[10px] text-slate-400 font-black uppercase mb-3">Authority Type</label><select id="c-cat" class="w-full bg-transparent border-none outline-none font-black text-slate-700">${state.categories.map(cat => `<option>${cat}</option>`).join('')}</select></div>
                             </div>
                         </div>
                     </form>
                 </div>`;
             lucide.createIcons();
+            if (state.currentAddr) document.getElementById('c-loc').value = state.currentAddr;
         }
 
-        // --- 5. CAMERA & CAPTURE LOGIC ---
+        // --- 5. CAMERA & OVERLAY ENGINE ---
 
         async function startCamera() {
             const overlay = document.getElementById('camera-overlay');
             const video = document.getElementById('video-feed');
             overlay.style.display = 'flex';
             try {
-                state.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment", width: { ideal: 1280 } }, audio: false });
+                state.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment", width: { ideal: 1920 } }, audio: false });
                 video.srcObject = state.stream;
                 state.currentAddr = await reverseGeocode(state.currentLat, state.currentLng);
                 document.getElementById('cam-address').innerText = state.currentAddr.toUpperCase();
+                const locInp = document.getElementById('c-loc');
+                if (locInp) locInp.value = state.currentAddr;
             } catch (e) { showToast("Camera Access Denied"); stopCamera(); }
         }
 
@@ -554,42 +524,46 @@
             canvas.width = video.videoWidth; canvas.height = video.videoHeight;
             const ctx = canvas.getContext('2d');
             
-            // Draw Mirror-corrected frame
+            // 1. Draw Mirror-corrected frame (environment mode is mirrored by default in many viewfinders)
             ctx.translate(canvas.width, 0); ctx.scale(-1, 1);
             ctx.drawImage(video, 0, 0);
             ctx.setTransform(1, 0, 0, 1, 0, 0);
 
-            // Adaptive Meta Overlay
-            const barHeight = canvas.height * 0.15;
-            const padding = canvas.width * 0.05;
-            const fontSize = Math.max(12, Math.floor(canvas.height * 0.025));
+            // 2. Adaptive Meta Overlay Calculation
+            const barHeight = Math.floor(canvas.height * 0.16);
+            const padding = Math.floor(canvas.width * 0.05);
+            const fontSize = Math.max(16, Math.floor(canvas.height * 0.03));
             
-            ctx.fillStyle = "rgba(15, 23, 42, 0.75)";
+            // Background Bar
+            ctx.fillStyle = "rgba(15, 23, 42, 0.8)";
             ctx.fillRect(0, canvas.height - barHeight, canvas.width, barHeight);
             
             ctx.fillStyle = "white";
-            ctx.font = `black ${fontSize}px Plus Jakarta Sans`;
+            ctx.font = `900 ${fontSize}px Plus Jakarta Sans`;
             
-            // Multi-line wrap for address
+            // Text Wrapping Engine for Human Address
             const addrWords = state.currentAddr.split(' ');
             let line = '';
             let y = canvas.height - (barHeight * 0.65);
+            const maxWidth = canvas.width - (padding * 2);
+
             for (let word of addrWords) {
                 let testLine = line + word + ' ';
-                if (ctx.measureText(testLine).width > (canvas.width - (padding * 2))) {
+                if (ctx.measureText(testLine).width > maxWidth) {
                     ctx.fillText(line, padding, y);
                     line = word + ' ';
-                    y += fontSize * 1.2;
+                    y += fontSize * 1.3;
                 } else { line = testLine; }
             }
             ctx.fillText(line, padding, y);
             
             ctx.fillStyle = "#3b82f6";
-            ctx.fillText(`CIVICGRAM TRACE: ${new Date().toLocaleString().toUpperCase()}`, padding, canvas.height - (barHeight * 0.15));
+            ctx.font = `900 ${fontSize * 0.7}px Plus Jakarta Sans`;
+            ctx.fillText(`CIVICGRAM EVIDENCE TRACE: ${new Date().toLocaleString().toUpperCase()}`, padding, canvas.height - (barHeight * 0.15));
 
-            const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
             
-            // UI Tray
+            // 3. UI Tray Update
             const grid = document.getElementById('multi-preview-grid');
             const placeholder = document.getElementById('upload-placeholder');
             const uploadLayer = document.getElementById('cam-upload-overlay');
@@ -600,25 +574,27 @@
 
             const wrap = document.createElement('div');
             wrap.className = "relative group h-24";
-            wrap.innerHTML = `<img src="${dataUrl}" class="w-full h-full object-cover rounded-xl border border-slate-100 shadow-sm"><button onclick="window.downloadBlob('${dataUrl}')" class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center rounded-xl transition-opacity text-white font-black text-[9px] uppercase">Download</button>`;
+            wrap.innerHTML = `
+                <img src="${dataUrl}" class="w-full h-full object-cover rounded-xl border border-slate-100 shadow-sm">
+                <button onclick="window.downloadBlob('${dataUrl}')" class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center rounded-xl transition-opacity text-white font-black text-[9px] uppercase">Save to Device</button>`;
             grid.appendChild(wrap);
 
-            // Cloud Sync
+            // 4. Cloud Sync
             state.isUploading = true;
             try {
                 const fd = new FormData();
                 fd.append('image', dataUrl.split(',')[1]);
                 const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, { method: 'POST', body: fd });
                 const d = await res.json();
-                if (d.success) { state.tempImageUrls.push(d.data.url); showToast("Evidence Synced"); }
-            } finally { state.isUploading = false; if(uploadLayer) uploadLayer.classList.add('hidden'); stopCamera(); }
+                if (d.success) { state.tempImageUrls.push(d.data.url); showToast("Evidence Staged"); }
+            } finally { state.isUploading = false; if(uploadLayer) uploadLayer.classList.add('hidden'); }
         }
 
         window.downloadBlob = (base64) => {
             const l = document.createElement('a'); l.href = base64; l.download = `CivicGram_Evidence_${Date.now()}.jpg`; l.click();
         };
 
-        // --- 6. NAVIGATION & APP ENGINE ---
+        // --- 6. NAVIGATION & INIT ---
 
         async function handleNavigation() {
             const viewport = document.getElementById('viewport');
@@ -636,8 +612,13 @@
             document.querySelectorAll('.nav-link, .nav-btn').forEach(btn => btn.classList.toggle('active', btn.getAttribute('data-route') === route));
             window.scrollTo(0, 0);
 
-            if (route === 'u' && (sub === 'followers' || sub === 'following')) await renderFollowList(viewport, param, sub);
-            else {
+            if (route === 'u' && (sub === 'followers' || sub === 'following')) {
+                const { data: p } = await sb.from('profiles').select('id, username').eq('username', param).single();
+                if (!p) return window.location.hash = '#/feed';
+                const { data: list } = await sb.from('follows').select(`profiles:${sub === 'followers' ? 'follower_id' : 'following_id'}(*)`).eq(sub === 'followers' ? 'following_id' : 'follower_id', p.id);
+                viewport.innerHTML = `<div class="bg-white rounded-[40px] border border-slate-100 overflow-hidden shadow-sm page-transition text-slate-900"><header class="p-10 border-b border-slate-50 flex items-center space-x-6 sticky top-0 bg-white/90 backdrop-blur-md z-10"><button onclick="window.history.back()" class="p-3 hover:bg-slate-50 rounded-2xl transition-all"><i data-lucide="arrow-left" class="w-6 h-6"></i></button><h2 class="text-[10px] font-black uppercase tracking-widest">${sub} of @${param}</h2></header><div class="p-4 space-y-4">${(list || []).map(item => { const u = item.profiles; return `<div class="flex items-center justify-between p-5 bg-slate-50 rounded-[28px] cursor-pointer" onclick="window.location.hash='#/u/${u.username}'"><div class="flex items-center space-x-4"><div class="w-12 h-12 rounded-[14px] overflow-hidden bg-slate-200 border border-slate-300">${u.avatar_url ? `<img src="${u.avatar_url}" class="w-full h-full object-cover">` : `<div class="w-full h-full flex items-center justify-center font-black text-slate-400 uppercase">${u.username[0]}</div>`}</div><div><p class="text-sm font-black text-slate-900">@${u.username}</p><p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">${u.display_name || 'Citizen'}</p></div></div><i data-lucide="arrow-right" class="text-slate-300 w-5 h-5"></i></div>`; }).join('')}</div></div>`;
+                lucide.createIcons();
+            } else {
                 switch(route) {
                     case 'feed': renderFeed(viewport); break;
                     case 'auth': renderAuth(viewport); break;
@@ -658,10 +639,10 @@
             const { data: { session } } = await sb.auth.getSession();
             await syncUser(session?.user);
 
-            sb.auth.onAuthStateChange(async (event, session) => {
-                await syncUser(session?.user);
-                if (event === 'SIGNED_IN' && window.location.hash.includes('auth')) window.location.hash = '#/feed';
-                else if (event === 'SIGNED_OUT') window.location.hash = '#/auth';
+            sb.auth.onAuthStateChange(async (e, s) => { 
+                await syncUser(s?.user); 
+                if (e === 'SIGNED_IN' && window.location.hash.includes('auth')) window.location.hash = '#/feed';
+                else if (e === 'SIGNED_OUT') window.location.hash = '#/auth';
             });
 
             sb.channel('public:posts').on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, async () => {
@@ -675,24 +656,7 @@
             if ("geolocation" in navigator) navigator.geolocation.getCurrentPosition((p) => { state.currentLat = p.coords.latitude; state.currentLng = p.coords.longitude; }, () => {});
         }
 
-        // Standard logic stubs
-        function handleImageSelection(event, previewId, buttonId) {
-            const files = Array.from(event.target.files || []);
-            if (!files.length) return;
-            if (previewId === 'avatar-preview') {
-                state.activePreviewId = previewId; state.activeBtnId = buttonId;
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    const target = document.getElementById('cropper-target'); target.src = e.target.result;
-                    document.getElementById('cropper-overlay').style.display = 'flex';
-                    if (state.cropper) state.cropper.destroy();
-                    state.cropper = new Cropper(target, { aspectRatio: 1, viewMode: 1 });
-                };
-                reader.readAsDataURL(files[0]);
-                return;
-            }
-        }
-
+        // Shared Standard Handlers
         async function handleLogout() { await sb.auth.signOut(); }
         async function submitComment(e, pId) { e.preventDefault(); const c = e.target.comment.value.trim(); if (!c || !state.user) return; await sb.from('comments').insert({ post_id: pId, user_id: state.user.id, username: state.user.username, content: c }); e.target.reset(); await fetchPosts(); renderPostDetail(document.getElementById('viewport'), pId); }
         async function handleAuth(e) { e.preventDefault(); const email = document.getElementById('email').value; const password = document.getElementById('password').value; const btn = e.target.querySelector('button'); btn.disabled = true; try { if (state.authMode === 'signup') { const u = document.getElementById('auth-user').value; await sb.auth.signUp({ email, password, options: { data: { username: u } } }); showToast("Check Inbox"); } else { await sb.auth.signInWithPassword({ email, password }); } } catch(err) { showToast(err.message); btn.disabled = false; } }
@@ -705,7 +669,7 @@
             try {
                 const { error } = await sb.from('posts').insert([{ author: state.user.username, author_id: state.user.id, author_avatar: state.user.avatar_url || null, image: JSON.stringify(state.tempImageUrls), category: document.getElementById('c-cat').value, location: document.getElementById('c-loc').value, description: document.getElementById('c-desc').value, status: 'Pending', latitude: state.currentLat, longitude: state.currentLng }]);
                 if (error) throw error;
-                showToast("Evidence Transmitted"); window.location.hash = '#/feed';
+                showToast("Evidence Transmitted Successfully"); window.location.hash = '#/feed';
             } catch (err) { alert(err.message); btn.disabled = false; }
         }
 
@@ -715,7 +679,7 @@
             try {
                 const { error } = await sb.from('profiles').update({ display_name: document.getElementById('p-display-name').value, bio: document.getElementById('p-bio').value, avatar_url: state.tempImageUrls[0] || state.user.avatar_url, updated_at: new Date() }).eq('id', state.user.id);
                 if (error) throw error;
-                showToast("Identity Refined"); window.location.hash = '#/u';
+                showToast("Identity Updated"); window.location.hash = '#/u';
             } catch (err) { alert(err.message); btn.disabled = false; }
         }
 
@@ -727,7 +691,7 @@
                 const fd = new FormData(); fd.append('image', blob);
                 const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, { method: 'POST', body: fd });
                 const d = await res.json();
-                if (d.success) { state.tempImageUrls = [d.data.url]; showToast("Avatar Contextualized"); }
+                if (d.success) { state.tempImageUrls = [d.data.url]; showToast("Avatar Ready"); }
                 state.isUploading = false;
             });
         }
