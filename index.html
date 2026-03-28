@@ -20,40 +20,40 @@
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
         
         :root {
+            --civic-primary: #4f46e5;
             --civic-dark: #0f172a;
-            --civic-indigo: #4f46e5;
-            --civic-emerald: #10b981;
             --civic-bg: #f8fafc;
+            --civic-card: #ffffff;
+            --civic-border: #f1f5f9;
+            --civic-text: #0f172a;
+            --civic-muted: #64748b;
+            --civic-accent-soft: #eef2ff;
+        }
+
+        .dark {
+            --civic-bg: #020617;
+            --civic-card: #0f172a;
+            --civic-border: #1e293b;
+            --civic-text: #f8fafc;
+            --civic-muted: #94a3b8;
+            --civic-accent-soft: #1e1b4b;
         }
 
         body { 
             font-family: 'Plus Jakarta Sans', sans-serif;
             background-color: var(--civic-bg); 
-            color: var(--civic-dark);
+            color: var(--civic-text);
             margin: 0; padding: 0; overflow-x: hidden;
             -webkit-font-smoothing: antialiased;
-            touch-action: manipulation;
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
 
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-        /* Layout Architecture */
-        #app-shell { display: flex; min-height: 100vh; width: 100%; }
-
-        #sidebar {
-            width: 320px; height: 100vh; position: fixed; left: 0; top: 0;
-            background: #fff; border-right: 1px solid #f1f5f9; padding: 3rem 2rem;
-            display: none; flex-direction: column; z-index: 100;
-        }
-
-        #main-content { flex: 1; margin-left: 0; max-width: 100%; display: flex; flex-direction: column; }
         #viewport { 
-            max-width: 600px; 
-            width: 100%; 
-            margin: 0 auto; 
-            padding-bottom: 240px; /* High safety margin for bottom-nav */
-            min-height: 100vh;
+            max-width: 600px; width: 100%; margin: 0 auto; 
+            padding-bottom: 280px; min-height: 100vh;
         }
 
         @media (min-width: 1024px) {
@@ -63,480 +63,804 @@
             #bottom-nav, header { display: none !important; } 
         }
 
-        .logo-font { font-weight: 800; letter-spacing: -2px; color: var(--civic-indigo); font-style: italic; }
+        .logo-font { font-weight: 800; letter-spacing: -2px; color: var(--civic-primary); font-style: italic; }
+        .text-primary { color: var(--civic-primary); }
+        .bg-primary { background-color: var(--civic-primary); }
         
-        /* Modern Civic Feed Card */
-        .report-card {
-            background: white; border-bottom: 1px solid #f1f5f9;
-            margin-bottom: 0.5rem; overflow: hidden;
-        }
+        .report-card { background: var(--civic-card); border-bottom: 1px solid var(--civic-border); margin-bottom: 0.5rem; overflow: hidden; }
         @media (min-width: 640px) {
-            .report-card { border: 1px solid #f1f5f9; border-radius: 32px; margin-bottom: 3.5rem; box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.03); }
+            .report-card { border: 1px solid var(--civic-border); border-radius: 32px; margin-bottom: 3.5rem; box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.03); }
         }
 
-        .horizontal-media-scroll {
-            display: flex;
-            overflow-x: auto;
-            scroll-snap-type: x mandatory;
-            background: #000;
-            aspect-ratio: 4/5;
-            position: relative;
-        }
-        .media-snap-item {
-            flex-shrink: 0;
-            width: 100%;
-            height: 100%;
-            scroll-snap-align: start;
-            position: relative;
-        }
+        .horizontal-media-scroll { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; background: #000; aspect-ratio: 4/5; position: relative; }
+        .media-snap-item { flex-shrink: 0; width: 100%; height: 100%; scroll-snap-align: start; position: relative; }
 
-        .post-media-container { width: 100%; height: 100%; overflow: hidden; position: relative; cursor: zoom-in; }
-        .grid-item { width: 100%; height: 100%; object-fit: cover; transition: filter 0.3s; }
-        
-        #fullscreen-overlay, #cropper-overlay, #camera-overlay, #capture-review-overlay, #modal-overlay {
+        #fullscreen-overlay, #camera-overlay, #capture-review-overlay, #modal-overlay, #settings-overlay {
             display: none; position: fixed; inset: 0; background: rgba(2, 6, 23, 0.99);
-            z-index: 2000; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(30px);
+            z-index: 3000; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(30px);
         }
-
-        .avatar-fit { 
-            width: 100%; height: 100%; 
-            border-radius: 999px; overflow: hidden; 
-            display: flex; align-items: center; justify-content: center; 
-            background: #f1f5f9;
-            aspect-ratio: 1 / 1;
-        }
-        .avatar-fit img { width: 100%; height: 100%; object-fit: cover; }
-
-        .btn-action {
-            display: flex; flex-direction: row; align-items: center; justify-content: center; padding: 0.6rem 0.8rem;
-            color: #475569; font-weight: 800; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); background: #f8fafc; border-radius: 20px;
-        }
-        .btn-action:active { transform: scale(0.9); opacity: 0.5; }
-        .btn-action.active { color: #ef4444; background: #fef2f2; }
-        .btn-action.active i { fill: #ef4444; }
-        .btn-action.saved { color: #4f46e5; background: #eff6ff; }
 
         .camera-viewport {
             width: 90%; max-width: 400px; aspect-ratio: 4/5; border-radius: 40px; overflow: hidden;
             background: black; border: 4px solid rgba(255,255,255,0.1); position: relative;
-            box-shadow: 0 50px 100px -20px rgba(0,0,0,0.5);
         }
 
-        #map-container { 
-            height: calc(100vh - 120px); width: 100%; border-radius: 0;
-            overflow: hidden; background: #eee;
-        }
-        @media (min-width: 1024px) {
-            #map-container { height: calc(100vh - 160px); border-radius: 40px; border: 10px solid white; box-shadow: 0 30px 60px -15px rgba(0,0,0,0.1); }
-        }
+        #map-container { height: calc(100vh - 120px); width: 100%; background: #eee; position: relative; }
+        @media (min-width: 1024px) { #map-container { border-radius: 40px; height: calc(100vh - 160px); } }
 
-        .status-pill {
-            padding: 4px 10px; border-radius: 100px; font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;
+        .btn-action {
+            display: flex; align-items: center; justify-content: center; padding: 0.6rem 0.8rem;
+            color: var(--civic-muted); font-weight: 800; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
+            transition: all 0.2s; background: var(--civic-bg); border-radius: 20px;
         }
+        .btn-action.active { color: #ef4444; background: #fef2f2; }
+        .btn-action.active i { fill: #ef4444; }
+        
+        .btn-action.saved { color: var(--civic-primary); background: var(--civic-accent-soft); }
+        .btn-action.saved i { fill: var(--civic-primary); }
 
-        .avatar-lg { 
-            width: 130px; height: 130px; 
-            border-radius: 999px; overflow: hidden; 
-            display: flex; align-items: center; justify-content: center; 
-            background: #f1f5f9; border: 6px solid #fff; 
-            box-shadow: 0 15px 35px -5px rgba(0,0,0,0.15);
-            flex-shrink: 0;
-            aspect-ratio: 1 / 1;
-        }
+        .profile-tab { flex: 1; padding: 1.5rem; text-align: center; font-weight: 800; font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: var(--civic-muted); border-bottom: 2px solid transparent; }
+        .profile-tab.active { color: var(--civic-primary); border-bottom-color: var(--civic-primary); }
+
+        .avatar-lg { width: 130px; height: 130px; border-radius: 999px; overflow: hidden; background: #f1f5f9; border: 6px solid #fff; box-shadow: 0 15px 35px -5px rgba(0,0,0,0.15); flex-shrink: 0; position: relative; }
         .avatar-lg img { width: 100%; height: 100%; object-fit: cover; }
 
-        .ai-badge {
-            background: linear-gradient(135deg, #4f46e5, #9333ea);
-            color: white;
-            padding: 2px 8px;
-            border-radius: 6px;
-            font-size: 9px;
-            font-weight: 800;
-            text-transform: uppercase;
+        .nav-link.active { color: var(--civic-primary); background: var(--civic-accent-soft); }
+
+        .action-button-float {
+            position: absolute; top: 8px; right: 8px; display: flex; flex-direction: column; gap: 4px; z-index: 10;
         }
 
-        .leaflet-popup-content-wrapper { border-radius: 28px; padding: 0; overflow: hidden; }
-        .leaflet-popup-content { margin: 0; width: 260px !important; }
+        .category-pill {
+            padding: 8px 16px; border-radius: 100px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;
+            border: 2px solid var(--civic-border); color: var(--civic-muted); transition: all 0.2s;
+        }
+        .category-pill.active {
+            background: var(--civic-primary); border-color: var(--civic-primary); color: white; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
+        }
+
+        .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #e2e8f0; transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--civic-primary); }
+        input:checked + .slider:before { transform: translateX(20px); }
+
+        /* Civic HUD Overlay styles */
+        .civic-hud {
+            position: absolute; bottom: 0; left: 0; right: 0; height: 22%;
+            background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.85) 60%, transparent 100%);
+            display: flex; align-items: center; padding: 0 1.5rem; color: white;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+        .hud-map-box {
+            width: 80px; height: 80px; border: 2px solid rgba(255,255,255,0.4);
+            background: #000; border-radius: 12px;
+            margin-right: 1rem; position: relative; overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+        #hud-map-anchor { width: 100%; height: 100%; }
     </style>
 </head>
 <body>
 
-    <!-- OVERLAYS -->
-    <div id="fullscreen-overlay">
-        <button onclick="closeFullscreen()" class="absolute top-8 right-8 text-white p-5 hover:bg-white/10 rounded-full z-50"><i data-lucide="x" class="w-10 h-10"></i></button>
-        <button id="fs-prev" class="absolute left-6 top-1/2 -translate-y-1/2 text-white p-8 hover:bg-white/10 rounded-full hidden z-50"><i data-lucide="chevron-left" class="w-12 h-12"></i></button>
-        <button id="fs-next" class="absolute right-6 top-1/2 -translate-y-1/2 text-white p-8 hover:bg-white/10 rounded-full hidden z-50"><i data-lucide="chevron-right" class="w-12 h-12"></i></button>
-        <img id="fullscreen-img" class="max-w-[95%] max-h-[85vh] object-contain rounded-[40px] shadow-2xl border-2 border-white/5">
-        <div id="fs-counter" class="absolute bottom-20 text-white font-black bg-indigo-600 px-14 py-4 rounded-full text-sm uppercase tracking-widest shadow-2xl shadow-indigo-900/40"></div>
+    <!-- SETTINGS HUB -->
+    <div id="settings-overlay" onclick="closeSettings()">
+        <div class="bg-white dark:bg-slate-900 p-10 rounded-[48px] w-[95%] max-w-md text-slate-900 dark:text-white shadow-2xl overflow-y-auto max-h-[90vh]" onclick="event.stopPropagation()">
+            <h3 class="text-3xl font-black italic uppercase tracking-tighter mb-8">Security Hub</h3>
+            
+            <div class="space-y-6">
+                <div class="p-6 bg-slate-50 dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700">
+                    <p class="text-[10px] font-black uppercase text-slate-400 mb-6 tracking-widest">Environment Theme</p>
+                    <div class="grid grid-cols-2 gap-3 mb-6">
+                        <button onclick="setTheme('indigo')" class="py-4 rounded-2xl bg-indigo-600 text-white font-bold text-[10px] uppercase">Civic Indigo</button>
+                        <button onclick="setTheme('emerald')" class="py-4 rounded-2xl bg-emerald-600 text-white font-bold text-[10px] uppercase">Emerald</button>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold uppercase">Night Vision (Dark Mode)</span>
+                        <label class="switch">
+                            <input type="checkbox" id="dark-mode-toggle" onchange="toggleDarkMode()">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <button onclick="handleLogout()" class="w-full flex items-center justify-between p-6 bg-red-50 text-red-600 rounded-3xl font-black text-xs uppercase tracking-widest">
+                    <span>Terminate Session</span>
+                    <i data-lucide="log-out" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <button onclick="closeSettings()" class="w-full p-4 text-slate-300 font-bold uppercase text-[10px] tracking-widest mt-8">Exit Dashboard</button>
+        </div>
     </div>
 
+    <!-- OVERLAYS -->
+    <div id="fullscreen-overlay" onclick="closeFullscreen()">
+        <button class="absolute top-8 right-8 text-white p-5"><i data-lucide="x" class="w-10 h-10"></i></button>
+        <img id="fullscreen-img" class="max-w-[95%] max-h-[85vh] object-contain rounded-[40px] shadow-2xl">
+        <div id="fs-counter" class="absolute bottom-10 text-white font-black bg-black/40 px-10 py-3 rounded-full text-xs"></div>
+    </div>
+
+    <!-- CAMERA OVERLAY -->
     <div id="camera-overlay">
-        <div class="absolute top-10 left-8 text-white z-10 pointer-events-none pr-8 text-slate-900">
-            <h3 class="font-black italic text-3xl uppercase tracking-tighter leading-none mb-2 text-white">Satellite Fix</h3>
-            <p id="cam-address" class="text-[10px] font-black text-indigo-400 uppercase tracking-widest leading-relaxed">Fixing Locality...</p>
+        <div class="absolute top-10 left-8 text-white z-10 pointer-events-none pr-8">
+            <h3 class="font-black italic text-3xl uppercase tracking-tighter leading-none mb-2 text-white">Live Sensor</h3>
+            <p class="text-[8px] font-black text-indigo-400 uppercase tracking-[4px]">Verified Proof-of-Life Channel</p>
         </div>
-        <button onclick="stopCamera()" class="absolute top-8 right-8 text-white p-4 hover:bg-white/10 rounded-full z-20 transition-all"><i data-lucide="x" class="w-7 h-7"></i></button>
+        <button onclick="stopCamera()" class="absolute top-8 right-8 text-white p-4 bg-white/10 rounded-full z-30 transition-all active:scale-75"><i data-lucide="x"></i></button>
         
-        <div class="camera-viewport mx-auto">
-            <video id="video-feed" autoplay playsinline style="width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1);"></video>
-            <div class="absolute bottom-6 left-6 right-6 p-4 bg-black/40 backdrop-blur-md rounded-2xl border border-white/10">
-                <div class="flex items-center space-x-2 text-[8px] font-black text-white/50 uppercase tracking-widest mb-1 text-white">
-                    <i data-lucide="shield" class="w-2.5 h-2.5 text-white"></i><span>Validated Trace</span>
+        <div class="camera-viewport mx-auto mt-10 shadow-2xl">
+            <video id="video-feed" autoplay playsinline style="width: 100%; height: 100%; object-fit: cover;"></video>
+            
+            <!-- LIVE HUD OVERLAY -->
+            <div class="civic-hud pointer-events-none">
+                <div class="hud-map-box">
+                    <div id="hud-map-anchor"></div>
                 </div>
-                <p class="text-[9px] font-black text-white leading-tight uppercase truncate">System Active: 4:5 Sensor</p>
+                <div class="flex-1 overflow-hidden">
+                    <p id="cam-address" class="text-[10px] font-black uppercase text-indigo-300 truncate tracking-widest mb-1">Locating Satellite...</p>
+                    <div class="flex items-center space-x-3 text-[8px] font-bold text-white/60 tracking-widest">
+                        <span id="cam-gps">GPS: --.--- | --.---</span>
+                        <span id="cam-time">UTC: --:--:--</span>
+                    </div>
+                    <div class="mt-2 flex items-center justify-between border-t border-white/10 pt-2">
+                        <span class="text-[9px] font-black text-white italic tracking-tighter uppercase">CivicGram Trace</span>
+                        <div class="flex space-x-1.5">
+                            <div class="w-1.5 h-1.5 bg-red-600 rounded-full animate-pulse"></div>
+                            <div class="w-1.5 h-1.5 bg-white/20 rounded-full"></div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <div class="mt-10 flex items-center justify-center space-x-12 z-10 w-full">
-            <button id="capture-btn" onclick="captureFrame()" class="w-[80px] h-[80px] rounded-full border-[8px] border-white/30 bg-white shadow-2xl transition-all active:scale-90 flex items-center justify-center">
-                <div class="w-full h-full rounded-full border-[6px] border-slate-900"></div>
+        <div class="mt-8 flex flex-col items-center">
+            <button id="capture-btn" onclick="captureFrame()" class="w-20 h-20 rounded-full border-8 border-white/20 bg-white shadow-2xl transition-all active:scale-90 flex items-center justify-center">
+                <div class="w-14 h-14 rounded-full border-4 border-slate-900"></div>
             </button>
+            <p id="cam-hint" class="text-white/30 text-[9px] font-black uppercase mt-6 tracking-[6px]">Authorize Evidence Transmission</p>
         </div>
-        <p class="text-white/30 text-[10px] font-black uppercase mt-8 tracking-[6px] text-center w-full">Burn Trace ID to Evidence</p>
     </div>
 
+    <!-- CAPTURE REVIEW OVERLAY -->
     <div id="capture-review-overlay">
-        <div class="absolute top-10 left-8 text-white z-10 pointer-events-none">
-            <h3 id="review-title" class="font-black italic text-2xl uppercase tracking-tighter text-white uppercase text-white">CIVICGRAM EVIDENCE</h3>
-            <p class="text-[10px] font-black text-emerald-400 uppercase tracking-widest mt-1 text-emerald-400">Status: Signature Verified</p>
-        </div>
-        <button onclick="discardCapture()" class="absolute top-8 right-8 text-white p-4 hover:bg-white/10 rounded-full z-20 transition-all"><i data-lucide="x" class="w-7 h-7 text-white"></i></button>
         <div class="camera-viewport mb-10 shadow-2xl mx-auto">
             <img id="review-img" class="w-full h-full object-cover">
         </div>
-        <div class="flex items-center space-x-4 px-6 w-full max-w-[400px]">
-            <button id="review-discard-btn" onclick="discardCapture()" class="flex-1 py-5 bg-slate-800 text-slate-300 rounded-[24px] font-black text-[10px] uppercase tracking-widest text-slate-300">Discard</button>
-            <button onclick="window.downloadBlob(state.currentCapture)" class="flex-1 py-5 bg-slate-700 text-white rounded-[24px] font-black text-[10px] uppercase tracking-widest flex items-center justify-center shadow-lg active:scale-95 transition-transform"><i data-lucide="download" class="w-4 h-4 mr-2 text-white"></i>Save</button>
-            <button id="review-confirm-btn" onclick="confirmCapture()" class="flex-[1.5] py-5 bg-indigo-600 text-white rounded-[24px] font-black text-[10px] uppercase tracking-widest shadow-xl active:scale-95 transition-transform text-white">Accept</button>
+        <div class="flex items-center space-x-4 px-6 w-full max-w-[450px]">
+            <button onclick="discardCapture()" class="flex-1 py-5 bg-slate-800 text-slate-300 rounded-[24px] font-black text-[10px] uppercase tracking-widest">Discard</button>
+            <button onclick="window.downloadBlob(state.currentCapture)" class="p-5 bg-slate-700 text-white rounded-[24px] shadow-lg active:scale-75 transition-all"><i data-lucide="download" class="w-5 h-5"></i></button>
+            <button id="review-accept-btn" onclick="confirmCapture()" class="flex-[2] py-5 bg-primary text-white rounded-[24px] font-black text-[10px] uppercase shadow-xl shadow-indigo-200">Transmit Evidence</button>
         </div>
     </div>
 
     <div id="modal-overlay">
-        <div class="bg-white p-10 rounded-[48px] max-w-[90%] w-full text-center shadow-2xl text-slate-900 border border-slate-100">
-            <div class="w-20 h-20 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto mb-8 shadow-sm">
-                <i data-lucide="alert-triangle" class="w-10 h-10 text-red-600"></i>
-            </div>
-            <h3 class="text-2xl font-black italic uppercase tracking-tighter mb-4 text-slate-900 text-slate-900">Purge Report?</h3>
-            <p class="text-sm text-slate-500 font-medium mb-10 leading-relaxed text-center px-4">Removing this case will permanently erase the evidence trace from national archives.</p>
+        <div class="bg-white p-10 rounded-[48px] max-w-[90%] w-full text-center shadow-2xl">
+            <div id="modal-content-zone" class="mb-10 text-slate-900 dark:text-white font-bold"></div>
             <div class="grid grid-cols-2 gap-4">
-                <button onclick="closeModal()" class="py-5 bg-slate-100 rounded-[24px] font-black text-[10px] uppercase tracking-widest text-slate-500 active:scale-95 transition-transform">Cancel</button>
-                <button id="modal-confirm-btn" class="py-5 bg-red-600 text-white rounded-[24px] font-black text-[10px] uppercase tracking-widest shadow-xl shadow-red-200 active:scale-95 transition-transform text-white">Purge</button>
+                <button onclick="closeModal()" class="py-5 bg-slate-100 rounded-[24px] font-black text-[10px] uppercase text-slate-500">Cancel</button>
+                <button id="modal-confirm-btn" class="py-5 bg-red-600 text-white rounded-[24px] font-black text-[10px] uppercase">Confirm</button>
             </div>
         </div>
     </div>
 
     <!-- APP SHELL -->
     <div id="app-shell">
-        <aside id="sidebar">
-            <div class="flex items-center space-x-6 mb-28 px-5 text-slate-900">
-                <div class="w-14 h-14 bg-indigo-700 rounded-[20px] flex items-center justify-center shadow-2xl shadow-indigo-200 text-white"><i data-lucide="database" class="text-white w-7 h-7"></i></div>
-                <h1 onclick="window.location.hash = '#/feed'" class="logo-font text-4xl cursor-pointer">CivicGram</h1>
+        <aside id="sidebar" class="hidden lg:flex w-[320px] h-screen fixed left-0 top-0 bg-white dark:bg-slate-900 border-r border-slate-100 dark:border-slate-800 p-10 flex-col z-[1002]">
+            <div class="flex items-center space-x-4 mb-20">
+                <div class="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center text-white"><i data-lucide="database"></i></div>
+                <h1 class="logo-font text-3xl">CivicGram</h1>
             </div>
-            <nav class="flex-1">
-                <div onclick="window.location.hash = '#/feed'" class="nav-link" data-route="feed"><i data-lucide="activity" class="mr-4 text-slate-900"></i><span>Live Feed</span></div>
-                <div onclick="window.location.hash = '#/map'" class="nav-link" data-route="map"><i data-lucide="map" class="mr-4 text-slate-900"></i><span>National Map</span></div>
-                <div onclick="window.location.hash = '#/create'" class="nav-link" data-route="create"><i data-lucide="camera" class="mr-4 text-slate-900"></i><span>Report Case</span></div>
-                <div onclick="window.location.hash = '#/notifications'" class="nav-link" data-route="notifications"><i data-lucide="bell" class="mr-4 text-slate-900"></i><span>Activity</span></div>
-                <div onclick="window.location.hash = '#/u'" class="nav-link" data-route="u">
-                    <div id="sidebar-avatar-container" class="w-8 h-8 rounded-full bg-slate-100 mr-4 flex items-center justify-center text-[10px] font-bold border border-slate-200 uppercase overflow-hidden shadow-sm text-slate-900"><i data-lucide="user" class="text-slate-900"></i></div>
-                    <span>My Identity</span>
-                </div>
+            <nav class="flex-1 space-y-4">
+                <div onclick="location.hash='#/feed'" class="nav-link flex items-center p-4 rounded-2xl cursor-pointer font-bold transition-all" data-route="feed"><i data-lucide="activity" class="mr-4"></i><span>Live Feed</span></div>
+                <div onclick="location.hash='#/map'" class="nav-link flex items-center p-4 rounded-2xl cursor-pointer font-bold transition-all" data-route="map"><i data-lucide="map" class="mr-4"></i><span>National Map</span></div>
+                <div onclick="location.hash='#/create'" class="nav-link flex items-center p-4 rounded-2xl cursor-pointer font-bold transition-all" data-route="create"><i data-lucide="camera" class="mr-4"></i><span>Report Case</span></div>
+                <div onclick="location.hash='#/notifications'" class="nav-link flex items-center p-4 rounded-2xl cursor-pointer font-bold transition-all" data-route="notifications"><i data-lucide="bell" class="mr-4"></i><span>Activity</span></div>
+                <div onclick="location.hash='#/u'" class="nav-link flex items-center p-4 rounded-2xl cursor-pointer font-bold transition-all" data-route="u"><i data-lucide="user" class="mr-4"></i><span>Profile</span></div>
             </nav>
-            <div id="sidebar-auth-zone" class="pt-14 border-t border-slate-100">
-                <button onclick="window.location.hash = '#/auth'" class="w-full py-7 bg-slate-900 text-white rounded-[28px] font-black text-xs uppercase tracking-widest shadow-xl text-white">Sign In</button>
+            <div id="sidebar-auth-zone" class="pt-10 border-t dark:border-slate-800 flex flex-col space-y-4">
+                <button onclick="openSettings()" class="w-full py-5 border dark:border-slate-700 rounded-3xl font-black text-[10px] uppercase text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">Settings Hub</button>
+                <button onclick="location.hash='#/auth'" class="w-full py-5 bg-primary text-white rounded-3xl font-black text-[10px] uppercase shadow-xl transition-all">Identify Access</button>
             </div>
         </aside>
 
         <div id="main-content">
-            <header class="sticky top-0 bg-white/80 backdrop-blur-3xl border-b border-slate-100 px-8 py-5 flex justify-between items-center z-[1001] lg:hidden text-slate-900">
-                <div class="flex items-center space-x-2 text-slate-900"><i data-lucide="database" class="text-indigo-600 w-6 h-6 text-indigo-600"></i><h1 onclick="window.location.hash = '#/feed'" class="logo-font text-xl text-slate-900">CivicGram</h1></div>
-                <div id="mobile-auth-header">
-                    <div onclick="window.location.hash='#/u'" class="w-11 h-11 rounded-full overflow-hidden bg-slate-100 border-2 border-white shadow-xl flex items-center justify-center cursor-pointer text-slate-900">
-                        <i data-lucide="user" class="w-5 h-5 text-slate-300 text-slate-300"></i>
-                    </div>
-                </div>
+            <header class="sticky top-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-3xl border-b border-slate-100 dark:border-slate-800 px-8 py-5 flex justify-between items-center z-[1001] lg:hidden">
+                <div class="flex items-center space-x-2"><i data-lucide="database" class="text-primary w-6 h-6"></i><h1 class="logo-font text-xl">CivicGram</h1></div>
+                <button onclick="openSettings()" class="p-2 text-slate-400"><i data-lucide="settings" class="w-6 h-6"></i></button>
             </header>
-
-            <main id="viewport" class="page-transition">
-                <div class="h-96 flex items-center justify-center"><div class="w-10 h-10 border-4 border-slate-100 border-t-indigo-600 rounded-full animate-spin"></div></div>
-            </main>
-
-            <nav id="bottom-nav" class="fixed bottom-0 w-full bg-white/95 backdrop-blur-3xl border-t border-slate-100 flex justify-around items-center py-8 px-4 z-[1001] lg:hidden shadow-[0_-15px_35px_-20px_rgba(0,0,0,0.15)] text-slate-900">
-                <button onclick="window.location.hash = '#/feed'" class="nav-btn p-3 text-slate-900" data-route="feed"><i data-lucide="activity" class="w-6 h-6 text-slate-900"></i></button>
-                <button onclick="window.location.hash = '#/map'" class="nav-btn p-3 text-slate-900" data-route="map"><i data-lucide="map" class="w-6 h-6 text-slate-900"></i></button>
-                <button onclick="window.location.hash = '#/create'" class="nav-btn p-5 bg-indigo-700 text-white rounded-[24px] shadow-2xl shadow-indigo-300 -translate-y-8 transition-transform active:scale-90 text-white" data-route="create"><i data-lucide="plus" class="w-7 h-7 text-white"></i></button>
-                <button onclick="window.location.hash = '#/notifications'" class="nav-btn p-3 text-slate-900" data-route="notifications"><i data-lucide="bell" class="w-6 h-6 text-slate-900"></i></button>
-                <button onclick="window.location.hash = '#/u'" class="nav-btn p-3 text-slate-900" data-route="u"><i data-lucide="user" class="w-6 h-6 text-slate-900"></i></button>
+            <main id="viewport" class="animate-in fade-in duration-500"></main>
+            <nav id="bottom-nav" class="fixed bottom-0 w-full bg-white/95 dark:bg-slate-900/95 backdrop-blur-3xl border-t border-slate-100 dark:border-slate-800 flex justify-around items-center py-8 pb-10 z-[1001] lg:hidden">
+                <button onclick="location.hash='#/feed'" class="nav-btn p-3 text-slate-400" data-route="feed"><i data-lucide="activity"></i></button>
+                <button onclick="location.hash='#/map'" class="nav-btn p-3 text-slate-400" data-route="map"><i data-lucide="map"></i></button>
+                <button onclick="location.hash='#/create'" class="p-5 bg-primary text-white rounded-[24px] shadow-2xl shadow-indigo-200 -translate-y-8 active:scale-90 transition-transform"><i data-lucide="plus"></i></button>
+                <button onclick="location.hash='#/notifications'" class="nav-btn p-3 text-slate-400" data-route="notifications"><i data-lucide="bell"></i></button>
+                <button onclick="location.hash='#/u'" class="nav-btn p-3 text-slate-400" data-route="u"><i data-lucide="user"></i></button>
             </nav>
         </div>
     </div>
 
-    <div id="toast-container" class="fixed bottom-28 right-8 z-[3000] flex flex-col items-end pointer-events-none"></div>
+    <div id="toast-container" class="fixed bottom-28 right-8 z-[4000] flex flex-col items-end pointer-events-none"></div>
 
     <script type="text/javascript">
-        // --- 1. CORE DATA & UTILITIES (HOISTED FIRST TO PREVENT REFERENCE ERRORS) ---
+        /** * 1. CORE CONFIG & HOISTING
+         */
         const IMGBB_API_KEY = '0abf983309932d2a2eeb289d53d7c55c';
-        const apiKey = ""; // Gemini
+        const apiKey = ""; 
         const SB_URL = 'https://lsfdeyayvdyohbjnqizt.supabase.co';
         const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxzZmRleWF5dmR5b2hiam5xaXp0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3MDk5NTAsImV4cCI6MjA4NzI4NTk1MH0.7FonFhSDEqA6jfiT4JulxBZT_eIhIHvwoMycdyZlhC4';
         const sb = window.supabase.createClient(SB_URL, SB_KEY);
 
-        const state = { 
+        let mapInstance = null; 
+        let hudMapInstance = null;
+        let hudMarker = null;
+
+        const state = { 
             user: null, posts: [], notifications: [], myLikes: [], myFollows: [], mySaves: [],
-            authMode: 'login', categories: ['Roads', 'Trash', 'Safety', 'Lights', 'Water', 'Parks'],
-            isUploading: false, tempImageUrls: [], tempCapturedData: [], 
+            categories: ['Roads', 'Trash', 'Safety', 'Lights', 'Water', 'Parks'],
+            selectedCategory: 'Roads',
             currentLat: 20.5937, currentLng: 78.9629, currentAddr: "Establishing FIX...",
-            currentView: null, profileTab: 'reports',
-            cropper: null, stream: null, currentCapture: null,
-            mapTarget: null
+            profileTab: 'reports', stream: null, currentCapture: null, cameraContext: 'post',
+            tempImageUrls: [], tempCapturedData: [], mapTarget: null, activeTheme: 'indigo',
+            settings: { darkMode: false, gpsEnabled: true, anonMode: false },
+            authMode: 'login',
+            replyTo: null 
         };
 
-        // Utility Hoisting
+        // Utility - Hoisted
         function parseImages(imgData) {
             if (!imgData) return []; if (Array.isArray(imgData)) return imgData;
-            try { if (typeof imgData === 'string' && imgData.trim().startsWith('[')) return JSON.parse(imgData); return [imgData]; } catch (e) { return [imgData]; }
+            try { return JSON.parse(imgData); } catch (e) { return [imgData]; }
         }
 
         function showToast(m) {
             const container = document.getElementById('toast-container');
             if (!container) return;
             const t = document.createElement('div');
-            t.className = "bg-slate-900 text-white text-[10px] font-black uppercase tracking-[2px] px-8 py-5 rounded-[24px] shadow-2xl mb-4 animate-in slide-in-from-right duration-500 border border-white/5";
+            t.className = "bg-slate-900 dark:bg-indigo-600 text-white text-[10px] font-black uppercase tracking-[2px] px-8 py-5 rounded-[24px] shadow-2xl mb-4 animate-in slide-in-from-right duration-500";
             t.innerText = m; container.appendChild(t); setTimeout(() => t.remove(), 4000);
         }
 
         async function reverseGeocode(lat, lng) {
+            // MANUAL ZOOM ADJUSTMENT: Change the number 17 below to zoom in (higher) or out (lower).
+            const hudZoom = 17; 
+
             try {
                 const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
                 const data = await res.json();
-                const a = data.address;
-                const local = a.village || a.suburb || a.neighbourhood || a.hamlet || a.town || "Citizen Point";
-                const city = a.city || a.state_district || "";
-                state.currentAddr = `${local}, ${city}, ${a.state || ''}, ${a.country || ''}`.replace(/,,/g, ',');
+                state.currentAddr = data.display_name.split(',').slice(0, 3).join(',');
                 if (document.getElementById('c-loc')) document.getElementById('c-loc').value = state.currentAddr;
+                
+                // Update HUD in real-time
+                if (document.getElementById('cam-address')) {
+                    document.getElementById('cam-address').innerText = state.currentAddr.toUpperCase();
+                    document.getElementById('cam-gps').innerText = `GPS: ${lat.toFixed(4)} | ${lng.toFixed(4)}`;
+                    document.getElementById('cam-time').innerText = `UTC: ${new Date().toISOString().split('T')[1].split('.')[0]}`;
+                }
+                
+                // Sync HUD Map
+                if (hudMapInstance) {
+                    hudMapInstance.setView([lat, lng], hudZoom);
+                    if (hudMarker) {
+                        hudMarker.setLatLng([lat, lng]);
+                    } else {
+                        hudMarker = L.circleMarker([lat, lng], { radius: 6, color: '#4f46e5', weight: 3, opacity: 1, fillColor: 'white', fillOpacity: 1 }).addTo(hudMapInstance);
+                    }
+                }
+                
                 return state.currentAddr;
-            } catch (e) { return `${lat.toFixed(6)}, ${lng.toFixed(6)}`; }
+            } catch (e) { return "Coordinates Fixed"; }
         }
 
-        function formatDateTime(dateStr) {
-            const date = dateStr ? new Date(dateStr) : new Date();
-            return `${date.toLocaleDateString('en-GB')} | ${date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })} GMT+05:30`;
+        function setTheme(t) {
+            state.activeTheme = t;
+            document.body.className = t === 'indigo' ? 'theme-indigo' : 'theme-emerald';
+            if (state.settings.darkMode) document.body.classList.add('dark');
+            closeSettings();
         }
 
-        async function geminiAnalysis(description) {
-            const prompt = `Analyze this civic report: "${description}". Provide a 2-sentence citizen impact statement. Format: "Impact: [Short text] | Risk: [Low/Med/High]".`;
-            try {
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
-                    method: 'POST',
-                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-                });
-                const data = await response.json();
-                return data.candidates?.[0]?.content?.parts?.[0]?.text || "Unable to resolve AI analysis.";
-            } catch (e) { return "AI analysis failed."; }
+        function toggleDarkMode() {
+            state.settings.darkMode = !state.settings.darkMode;
+            document.body.classList.toggle('dark', state.settings.darkMode);
+            showToast(`Dark Mode: ${state.settings.darkMode ? 'ON' : 'OFF'}`);
         }
 
-        // --- 2. DATABASE & SYNC LOGIC ---
+        function openSettings() { 
+            document.getElementById('settings-overlay').style.display = 'flex'; 
+            document.getElementById('dark-mode-toggle').checked = state.settings.darkMode;
+        }
+        function closeSettings() { document.getElementById('settings-overlay').style.display = 'none'; }
+        function closeFullscreen() { document.getElementById('fullscreen-overlay').style.display = 'none'; }
+        function closeModal() { document.getElementById('modal-overlay').style.display = 'none'; }
 
-        async function fetchPosts() { 
-            const { data } = await sb.from('posts').select('*, comments(*)'); 
+        /** * 2. DATA FETCHERS & SYNC ENGINE
+         */
+        async function fetchPosts() { 
+            const { data } = await sb.from('posts').select('*, comments(*)'); 
             state.posts = (data || []).sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
         }
 
-        async function fetchNotifications() { 
-            if (!state.user) return; 
-            const { data } = await sb.from('notifications').select('*').eq('user_id', state.user.id).order('created_at', { ascending: false }); 
-            state.notifications = data || []; 
+        async function fetchNotifications() {
+            if (!state.user) return;
+            const { data } = await sb.from('notifications').select('*').eq('user_id', state.user.id).order('created_at', { ascending: false });
+            state.notifications = data || [];
         }
 
         async function syncUser(user) {
             if (user) {
-                const { data: profile } = await sb.from('profiles').select('*').eq('id', user.id).single();
-                state.user = { id: user.id, username: profile?.username || user.email.split('@')[0], display_name: profile?.display_name || profile?.username, avatar_url: profile?.avatar_url, bio: profile?.bio };
-                const [{ data: likes }, { data: follows }, { data: saves }] = await Promise.all([
+                const { data: profile } = await sb.from('profiles').select('*').eq('id', user.id).maybeSingle();
+                state.user = { 
+                    id: user.id, 
+                    username: profile?.username || user.email.split('@')[0], 
+                    avatar_url: profile?.avatar_url,
+                    bio: profile?.bio || "Verified National Monitor",
+                    twitter: profile?.twitter || "",
+                    instagram: profile?.instagram || "",
+                    website: profile?.website || ""
+                };
+                const [{ data: likes }, { data: saves }, { data: follows }] = await Promise.all([
                     sb.from('post_upvotes').select('post_id').eq('user_id', user.id),
-                    sb.from('follows').select('following_id').eq('follower_id', user.id),
-                    sb.from('post_saves').select('post_id').eq('user_id', user.id)
+                    sb.from('post_saves').select('post_id').eq('user_id', user.id),
+                    sb.from('follows').select('following_id').eq('follower_id', user.id)
                 ]);
                 state.myLikes = likes?.map(l => l.post_id) || [];
-                state.myFollows = follows?.map(f => f.following_id) || [];
                 state.mySaves = saves?.map(s => s.post_id) || [];
+                state.myFollows = follows?.map(f => f.following_id) || [];
                 await fetchNotifications();
-            } else { state.user = null; state.myLikes = []; state.myFollows = []; state.mySaves = []; }
+            } else { state.user = null; state.myLikes = []; state.mySaves = []; }
             updateGlobalUI();
         }
 
         function updateGlobalUI() {
-            const authS = document.getElementById('sidebar-auth-zone');
-            const sideA = document.getElementById('sidebar-avatar-container');
-            const mobA = document.getElementById('mobile-auth-header');
-            if (state.user) {
-                authS.innerHTML = `<button onclick="window.handleLogout()" class="w-full py-8 border border-slate-100 rounded-[32px] font-black text-[13px] uppercase text-slate-400 hover:bg-slate-50 transition-colors">Terminate ID</button>`;
-                const pfp = state.user.avatar_url || 'https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=200&h=200&fit=crop';
-                const img = `<div class="avatar-fit"><img src="${pfp}" class="w-full h-full object-cover"></div>`;
-                sideA.innerHTML = img;
-                mobA.innerHTML = `<div onclick="window.location.hash='#/u'" class="w-11 h-11 rounded-full overflow-hidden bg-slate-100 border-2 border-white shadow-xl flex items-center justify-center cursor-pointer">${img}</div>`;
-            } else {
-                authS.innerHTML = `<button onclick="window.location.hash='#/auth'" class="w-full py-8 bg-indigo-700 text-white rounded-[32px] font-black text-xs uppercase tracking-widest shadow-xl">Identify</button>`;
-                sideA.innerHTML = `<i data-lucide="user"></i>`;
-                mobA.innerHTML = `<div onclick="window.location.hash='#/auth'" class="w-11 h-11 rounded-full overflow-hidden bg-slate-100 border-2 border-white shadow-xl flex items-center justify-center cursor-pointer"><i data-lucide="user" class="w-5 h-5 text-slate-300"></i></div>`;
+            const sideAuth = document.getElementById('sidebar-auth-zone');
+            if (state.user && sideAuth) {
+                sideAuth.innerHTML = `
+                    <div class="flex items-center space-x-3 p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl mb-4 cursor-pointer shadow-sm" onclick="location.hash='#/u'">
+                        <div class="w-10 h-10 rounded-full bg-white overflow-hidden shadow-sm"><img src="${state.user.avatar_url || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + state.user.username}"></div>
+                        <div class="flex-1 truncate"><p class="text-xs font-black truncate text-slate-900 dark:text-white">@${state.user.username}</p></div>
+                    </div>
+                    <button onclick="openSettings()" class="w-full py-5 border dark:border-slate-700 rounded-3xl font-black text-[10px] uppercase text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">Settings Hub</button>
+                `;
             }
             lucide.createIcons();
         }
 
-        function closeFullscreen() { document.getElementById('fullscreen-overlay').style.display = 'none'; }
-        function closeModal() { document.getElementById('modal-overlay').style.display = 'none'; }
-        function closeCropper() { document.getElementById('cropper-overlay').style.display = 'none'; if (state.cropper) state.cropper.destroy(); }
+        /** * 3. NAVIGATION ENGINE
+         */
+        async function handleNavigation() {
+            const viewport = document.getElementById('viewport');
+            const hash = location.hash || '#/feed';
+            const parts = hash.split('/');
+            const route = parts[1] || 'feed';
+            const param = parts[2];
+            const subroute = parts[3];
 
-        function openFullscreen(imagesJson, index) {
-            const images = typeof imagesJson === 'string' ? JSON.parse(imagesJson) : imagesJson;
-            if (!images || !images.length) return;
-            const overlay = document.getElementById('fullscreen-overlay');
-            const img = document.getElementById('fullscreen-img');
-            overlay.style.display = 'flex';
-            img.src = images[index];
-            document.getElementById('fs-counter').innerText = `${index + 1} / ${images.length}`;
-            document.getElementById('fs-prev').classList.toggle('hidden', images.length <= 1);
-            document.getElementById('fs-next').classList.toggle('hidden', images.length <= 1);
-            document.getElementById('fs-prev').onclick = (e) => { e.stopPropagation(); openFullscreen(images, (index - 1 + images.length) % images.length); };
-            document.getElementById('fs-next').onclick = (e) => { e.stopPropagation(); openFullscreen(images, (index + 1) % images.length); };
+            document.querySelectorAll('.nav-link, .nav-btn').forEach(btn => btn.classList.toggle('active', btn.getAttribute('data-route') === route));
+            if (['create', 'notifications', 'u', 'edit-profile'].includes(route) && !state.user) return location.hash = '#/auth';
+
+            switch(route) {
+                case 'feed': renderFeed(viewport); break;
+                case 'create': renderCreate(viewport); break;
+                case 'map': renderMap(viewport); break;
+                case 'u': 
+                    if (subroute === 'followers' || subroute === 'following') {
+                        await renderNetworkList(viewport, param, subroute);
+                    } else {
+                        await renderProfile(viewport, param); 
+                    }
+                    break;
+                case 'post': 
+                    await renderPostDetail(viewport, param);
+                    break;
+                case 'edit-profile': await renderEditProfile(viewport); break;
+                case 'notifications': 
+                    await fetchNotifications();
+                    renderNotifications(viewport);
+                    break;
+                case 'auth': renderAuth(viewport); break;
+                default: location.hash = '#/feed';
+            }
+            lucide.createIcons(); window.scrollTo(0,0);
         }
 
-        // --- 4. RENDERERS ---
+        /** * 4. CAMERA ENGINE
+         */
+        async function startCamera(context = 'post') {
+            // MANUAL ZOOM ADJUSTMENT: Change the number 17 below to zoom in (higher) or out (lower).
+            const hudZoom = 17; 
 
+            state.cameraContext = context;
+            const overlay = document.getElementById('camera-overlay');
+            const video = document.getElementById('video-feed');
+            overlay.style.display = 'flex';
+            
+            try {
+                state.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
+                video.srcObject = state.stream;
+                
+                // Initialize HUD Mini-Map with Satellite Tiles
+                if (hudMapInstance) hudMapInstance.remove();
+                hudMapInstance = L.map('hud-map-anchor', { zoomControl: false, attributionControl: false, scrollWheelZoom: false, dragging: false, touchZoom: false }).setView([state.currentLat, state.currentLng], hudZoom);
+                L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}').addTo(hudMapInstance);
+                hudMarker = L.circleMarker([state.currentLat, state.currentLng], { radius: 6, color: '#4f46e5', weight: 3, opacity: 1, fillColor: 'white', fillOpacity: 1 }).addTo(hudMapInstance);
+                
+                await reverseGeocode(state.currentLat, state.currentLng);
+                lucide.createIcons();
+            } catch (e) { showToast("Lens Linkage Error"); stopCamera(); }
+        }
+
+        function stopCamera() { 
+            if (state.stream) state.stream.getTracks().forEach(t => t.stop()); 
+            if (hudMapInstance) { hudMapInstance.remove(); hudMapInstance = null; hudMarker = null; }
+            document.getElementById('camera-overlay').style.display = 'none'; 
+        }
+
+        async function captureFrame() {
+            // MANUAL ZOOM ADJUSTMENT: Change the number 17 below to match your HUD view.
+            const burnZoom = 17; 
+
+            const video = document.getElementById('video-feed');
+            const canvas = document.createElement('canvas');
+            canvas.width = 1080; canvas.height = 1350; 
+            const ctx = canvas.getContext('2d');
+            const vw = video.videoWidth; const vh = video.videoHeight;
+            const targetRatio = 4/5;
+            let sx, sy, sw, sh;
+            if (vw/vh > targetRatio) { sh = vh; sw = vh * targetRatio; sx = (vw - sw) / 2; sy = 0; }
+            else { sw = vw; sh = vw / targetRatio; sx = 0; sy = (vh - sh) / 2; }
+            ctx.drawImage(video, sx, sy, sw, sh, 0, 0, 1080, 1350);
+            
+            if (state.cameraContext === 'post') {
+                const footerHeight = 1350 * 0.22;
+                const footerY = 1350 - footerHeight;
+
+                const grad = ctx.createLinearGradient(0, footerY - 50, 0, 1350);
+                grad.addColorStop(0, "rgba(0,0,0,0)");
+                grad.addColorStop(0.3, "rgba(0,0,0,0.85)");
+                grad.addColorStop(1, "rgba(0,0,0,0.98)");
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, footerY - 50, 1080, footerHeight + 50);
+
+                const boxSize = 210;
+                const margin = 60;
+                
+                // Fetch Static Satellite Tile for burn-in
+                const x = Math.floor((state.currentLng + 180) / 360 * Math.pow(2, burnZoom));
+                const y = Math.floor((1 - Math.log(Math.tan(state.currentLat * Math.PI / 180) + 1 / Math.cos(state.currentLat * Math.PI / 180)) / Math.PI) / 2 * Math.pow(2, burnZoom));
+                
+                const satelliteTileUrl = `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${burnZoom}/${y}/${x}`;
+                
+                const drawMetadata = () => {
+                    // Metadata Text
+                    ctx.fillStyle = "white";
+                    const textX = margin + boxSize + 40;
+                    ctx.font = "900 38px Plus Jakarta Sans";
+                    ctx.fillText("CIVICGRAM EVIDENCE", textX, footerY + 70);
+                    
+                    ctx.fillStyle = "#818cf8";
+                    ctx.font = "700 24px Plus Jakarta Sans";
+                    ctx.fillText(state.currentAddr.toUpperCase(), textX, footerY + 115);
+                    
+                    ctx.fillStyle = "rgba(255,255,255,0.6)";
+                    ctx.font = "600 18px Plus Jakarta Sans";
+                    ctx.fillText(`GEOTAG: ${state.currentLat.toFixed(5)} | ${state.currentLng.toFixed(5)}`, textX, footerY + 155);
+                    ctx.fillText(`FIX TIME: ${new Date().toLocaleString().toUpperCase()}`, textX, footerY + 185);
+                    
+                    ctx.fillStyle = "rgba(255,255,255,0.2)";
+                    ctx.font = "800 16px Plus Jakarta Sans";
+                    ctx.fillText("NATIONAL ACTION SYSTEM • VERIFIED TRACE • SATELLITE ANCHOR", textX, footerY + 220);
+
+                    state.currentCapture = canvas.toDataURL('image/jpeg', 0.9);
+                    document.getElementById('review-img').src = state.currentCapture;
+                    document.getElementById('capture-review-overlay').style.display = 'flex';
+                };
+
+                const mapImg = new Image();
+                mapImg.crossOrigin = "anonymous";
+                mapImg.onload = () => {
+                    ctx.drawImage(mapImg, margin, footerY + 20, boxSize, boxSize);
+                    
+                    // Draw Marker on Map Tile
+                    ctx.beginPath();
+                    ctx.arc(margin + 105, footerY + 125, 10, 0, Math.PI*2);
+                    ctx.fillStyle = "white"; ctx.fill();
+                    ctx.strokeStyle = "#4f46e5"; ctx.lineWidth = 3; ctx.stroke();
+
+                    ctx.strokeStyle = "rgba(255,255,255,0.4)";
+                    ctx.lineWidth = 4;
+                    ctx.strokeRect(margin, footerY + 20, boxSize, boxSize);
+                    drawMetadata();
+                };
+                mapImg.onerror = () => {
+                    ctx.fillStyle = "#111";
+                    ctx.fillRect(margin, footerY + 20, boxSize, boxSize);
+                    drawMetadata();
+                };
+                mapImg.src = satelliteTileUrl;
+            } else {
+                state.currentCapture = canvas.toDataURL('image/jpeg', 0.9);
+                document.getElementById('review-img').src = state.currentCapture;
+                document.getElementById('capture-review-overlay').style.display = 'flex';
+            }
+        }
+
+        function discardCapture() { document.getElementById('capture-review-overlay').style.display = 'none'; }
+
+        window.downloadBlob = async (url) => {
+            if (!url) return;
+            showToast("Saving Local Archive...");
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = `CG_TRACE_${Date.now()}.jpg`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        };
+
+        async function uploadFile(file) {
+            const fd = new FormData();
+            fd.append('image', file);
+            showToast("Transmitting Image...");
+            try {
+                const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, { method: 'POST', body: fd });
+                const d = await res.json();
+                if (d.success) return d.data.url;
+                throw new Error("Upload Failed");
+            } catch (err) { showToast(err.message); return null; }
+        }
+
+        async function confirmCapture() {
+            const acceptBtn = document.getElementById('review-accept-btn');
+            if (acceptBtn) { acceptBtn.innerText = "Transmitting..."; acceptBtn.disabled = true; }
+            const dataUrl = state.currentCapture;
+            const fd = new FormData(); fd.append('image', dataUrl.split(',')[1]);
+            try {
+                const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, { method: 'POST', body: fd });
+                const d = await res.json();
+                if (d.success) {
+                    if (state.cameraContext === 'avatar') {
+                        await sb.from('profiles').update({ avatar_url: d.data.url }).eq('id', state.user.id);
+                        showToast("Identification Updated");
+                        await syncUser((await sb.auth.getSession()).data.session?.user);
+                    } else {
+                        state.tempCapturedData.push(dataUrl);
+                        state.tempImageUrls.push(d.data.url);
+                    }
+                }
+            } catch (err) { showToast("Transmission Failed"); }
+            if (acceptBtn) { acceptBtn.innerText = "Accept Evidence"; acceptBtn.disabled = false; }
+            discardCapture();
+            if (location.hash.includes('create')) renderCreate(document.getElementById('viewport'));
+            if (location.hash.includes('edit-profile')) renderEditProfile(document.getElementById('viewport'));
+        }
+
+        /** * 5. ACTION HANDLERS */
+        window.handleLogout = async () => { await sb.auth.signOut(); location.reload(); };
+        window.zoomToPrecision = (lat, lng) => { state.mapTarget = { lat, lng }; location.hash = '#/map'; };
+        window.openFullscreen = (url) => { document.getElementById('fullscreen-img').src = url; document.getElementById('fullscreen-overlay').style.display = 'flex'; };
+        
+        window.handleAuth = async (e) => {
+            e.preventDefault();
+            const email = e.target.email.value.trim();
+            const pass = e.target.password.value;
+            const btn = e.target.querySelector('button');
+            btn.disabled = true; btn.innerText = "Verifying Identity...";
+            try {
+                if (state.authMode === 'login') {
+                    const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+                    if (error) throw error;
+                } else {
+                    const { data, error } = await sb.auth.signUp({ email, password: pass });
+                    if (error) throw error;
+                    if (data.user) await sb.from('profiles').upsert({ id: data.user.id, username: email.split('@')[0] });
+                    showToast("ID Established.");
+                }
+                const { data: { session } } = await sb.auth.getSession();
+                if (session) { await syncUser(session.user); handleNavigation(); }
+            } catch (err) { showToast(err.message); } finally { btn.disabled = false; btn.innerText = "Confirm Identity"; }
+        };
+
+        window.handleUpdateProfile = async (e) => {
+            e.preventDefault();
+            const { error } = await sb.from('profiles').update({ 
+                bio: e.target.bio.value, 
+                twitter: e.target.twitter.value, 
+                instagram: e.target.instagram.value, 
+                website: e.target.website.value 
+            }).eq('id', state.user.id);
+            if (!error) { showToast("Identity Updated"); await syncUser((await sb.auth.getSession()).data.session?.user); handleNavigation(); }
+        };
+
+        window.handleFollow = async (targetId) => {
+            if (!state.user) return location.hash = '#/auth';
+            if (state.myFollows.includes(targetId)) {
+                await sb.from('follows').delete().match({ follower_id: state.user.id, following_id: targetId });
+                state.myFollows = state.myFollows.filter(id => id !== targetId);
+            } else {
+                await sb.from('follows').insert({ follower_id: state.user.id, following_id: targetId });
+                state.myFollows.push(targetId);
+            }
+            handleNavigation();
+        };
+
+        window.handlePostUpvote = async (pId) => {
+            if (!state.user) return location.hash = '#/auth';
+            const post = state.posts.find(p => p.id == pId);
+            const alreadyLiked = state.myLikes.includes(pId);
+            if (alreadyLiked) {
+                await sb.from('post_upvotes').delete().match({ post_id: pId, user_id: state.user.id });
+                await sb.from('posts').update({ upvotes_count: Math.max(0, (post.upvotes_count || 0) - 1) }).eq('id', pId);
+                state.myLikes = state.myLikes.filter(id => id !== pId);
+            } else {
+                await sb.from('post_upvotes').insert({ post_id: pId, user_id: state.user.id });
+                await sb.from('posts').update({ upvotes_count: (post.upvotes_count || 0) + 1 }).eq('id', pId);
+                state.myLikes.push(pId);
+                if (post.author_id !== state.user.id) await sb.from('notifications').insert({ user_id: post.author_id, actor_username: state.user.username, post_id: pId, type: 'upvote' });
+            }
+            await fetchPosts(); handleNavigation();
+        };
+
+        window.handlePostSave = async (pId) => {
+            if (!state.user) return location.hash = '#/auth';
+            if (state.mySaves.includes(pId)) {
+                await sb.from('post_saves').delete().match({ post_id: pId, user_id: state.user.id });
+                state.mySaves = state.mySaves.filter(id => id !== pId);
+            } else {
+                await sb.from('post_saves').insert({ post_id: pId, user_id: state.user.id });
+                state.mySaves.push(pId);
+            }
+            handleNavigation();
+        };
+
+        window.handleShare = async (pId) => {
+            const shareData = {
+                title: 'CivicGram Trace Evidence',
+                text: 'Review this verified infrastructure report.',
+                url: window.location.origin + window.location.pathname + '#/post/' + pId
+            };
+            try {
+                if (navigator.share) await navigator.share(shareData);
+                else {
+                    const el = document.createElement('textarea'); el.value = shareData.url; document.body.appendChild(el); el.select(); document.execCommand('copy'); document.body.removeChild(el); showToast("Trace link copied");
+                }
+            } catch (err) { console.error(err); }
+        };
+
+        window.handleComment = async (e, pId) => {
+            e.preventDefault();
+            const content = e.target.comment.value.trim();
+            if (!content || !state.user) return;
+            const post = state.posts.find(p => p.id == pId);
+            const payload = { post_id: pId, user_id: state.user.id, username: state.user.username, content };
+            if (state.replyTo) payload.parent_id = state.replyTo.id;
+            const { data, error } = await sb.from('comments').insert(payload).select();
+            if (!error) {
+                if (post.author_id !== state.user.id) await sb.from('notifications').insert({ user_id: post.author_id, actor_username: state.user.username, post_id: pId, type: state.replyTo ? 'reply' : 'comment' });
+                e.target.reset(); state.replyTo = null; await fetchPosts(); handleNavigation();
+            }
+        };
+
+        window.handleManualUpload = async (e) => {
+            const url = await uploadFile(e.target.files[0]);
+            if (url) {
+                await sb.from('profiles').update({ avatar_url: url }).eq('id', state.user.id);
+                await syncUser((await sb.auth.getSession()).data.session?.user);
+                handleNavigation();
+            }
+        };
+
+        window.handlePostDelete = async (postId) => {
+            document.getElementById('modal-content-zone').innerHTML = `<h3>Purge Evidence?</h3><p class='text-xs text-slate-400 font-medium mt-2'>Irreversible trace erasure.</p>`;
+            document.getElementById('modal-overlay').style.display = 'flex';
+            document.getElementById('modal-confirm-btn').onclick = async () => {
+                await sb.from('posts').delete().eq('id', postId);
+                await fetchPosts(); closeModal(); handleNavigation(); showToast("Trace Purged");
+            };
+        };
+
+        window.handlePostEdit = async (postId) => {
+            const post = state.posts.find(p => p.id == postId);
+            const newDesc = prompt("Update Trace Description:", post.description);
+            if (newDesc) { await sb.from('posts').update({ description: newDesc }).eq('id', postId); await fetchPosts(); handleNavigation(); }
+        };
+
+        /** * 6. VIEW RENDERERS */
         function renderFeed(c) {
             c.innerHTML = `
-                <div class="flex space-x-4 mb-4 overflow-x-auto no-scrollbar py-6 px-4 text-slate-900">
-                    ${state.categories.map(cat => `<button class="shrink-0 px-6 py-3 bg-white border border-slate-100 rounded-[20px] text-[11px] font-black uppercase text-slate-500 shadow-sm active:scale-95 transition-transform text-slate-900">#${cat}</button>`).join('')}
-                </div>
-                <div class="space-y-4 text-slate-900 sm:space-y-12 pb-32 text-slate-900">
+                <div class="px-4 py-6 flex space-x-3 overflow-x-auto no-scrollbar">${state.categories.map(cat => `<button class="shrink-0 px-6 py-3 bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-[20px] text-[10px] font-black uppercase tracking-widest text-slate-400 shadow-sm">#${cat}</button>`).join('')}</div>
+                <div class="space-y-4 pb-32">
                     ${state.posts.map(post => {
-                        const isLiked = state.myLikes.includes(post.id);
                         const imgs = parseImages(post.image);
+                        const isLiked = state.myLikes.includes(post.id);
+                        const isSaved = state.mySaves.includes(post.id);
                         return `
-                        <article class="report-card animate-in fade-in" id="post-${post.id}">
-                            <div class="p-4 flex items-center justify-between text-slate-900">
-                                <div class="flex items-center space-x-3 cursor-pointer text-slate-900" onclick="window.location.hash = '#/u/${post.author}'">
-                                    <div class="w-10 h-10 rounded-full border border-slate-100 overflow-hidden bg-slate-50 flex items-center justify-center">
-                                        <img src="${post.author_avatar || 'https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=200&h=200&fit=crop'}" class="w-full h-full object-cover">
-                                    </div>
-                                    <div class="flex flex-col">
-                                        <div class="flex items-center space-x-1">
-                                            <p class="text-sm font-black text-slate-900 tracking-tighter">@${post.author}</p>
-                                            <i data-lucide="shield-check" class="w-3.5 h-3.5 text-indigo-500 fill-indigo-50 text-indigo-500"></i>
-                                        </div>
-                                        <button onclick="event.stopPropagation(); window.zoomToPostOnMap(${post.id})" class="text-[9px] text-slate-400 font-black uppercase tracking-[2px] flex items-center">
-                                            <i data-lucide="map-pin" class="w-2.5 h-2.5 mr-1 text-indigo-500 text-indigo-500"></i>${post.location.split(',')[0]}
-                                        </button>
-                                    </div>
+                        <article class="report-card">
+                            <div class="p-5 flex items-center justify-between">
+                                <div class="flex items-center space-x-3 cursor-pointer" onclick="location.hash='#/u/${post.author}'">
+                                    <div class="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden shadow-sm"><img src="${post.author_avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed='+post.author}"></div>
+                                    <div><p class="text-sm font-black dark:text-white">@${post.author}</p><button onclick="event.stopPropagation(); window.zoomToPrecision(${post.latitude}, ${post.longitude})" class="text-[9px] font-black uppercase text-primary tracking-widest flex items-center"><i data-lucide="map-pin" class="w-2.5 h-2.5 mr-1"></i>${post.location.split(',')[0]}</button></div>
                                 </div>
-                                <span class="status-pill ${post.status === 'Pending' ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600'}">${post.status}</span>
+                                <span class="bg-primary/5 text-primary px-3 py-1 rounded-full text-[9px] font-black uppercase">${post.category || 'Roads'}</span>
                             </div>
-
-                            <div class="horizontal-media-scroll no-scrollbar">
-                                ${imgs.map((img, idx) => `
+                            <div class="horizontal-media-scroll no-scrollbar">${imgs.map((img, i) => `
                                     <div class="media-snap-item">
-                                        <div class="post-media-container" onclick="openFullscreen('${post.image}', ${idx})">
-                                            <img src="${img}" class="grid-item">
-                                        </div>
-                                        <button onclick="event.stopPropagation(); window.downloadBlob('${img}')" class="absolute bottom-4 right-4 p-3 bg-black/50 backdrop-blur-md rounded-full text-white shadow-xl active:scale-75 transition-transform text-white">
-                                            <i data-lucide="download" class="w-4 h-4 text-white"></i>
+                                        <img src="${img}" class="w-full h-full object-cover" onclick="window.openFullscreen('${img}')">
+                                        <div class="absolute top-4 left-4 bg-black/40 backdrop-blur-md text-white px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest">Trace ${i+1}/${imgs.length}</div>
+                                        <button onclick="event.stopPropagation(); window.downloadBlob('${img}')" class="absolute bottom-4 right-4 p-3 bg-black/40 rounded-full text-white shadow-xl active:scale-75 transition-all">
+                                            <i data-lucide="download" class="w-4 h-4"></i>
                                         </button>
-                                        <div class="absolute top-4 left-4 bg-black/30 backdrop-blur-sm text-white px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest pointer-events-none text-white">Trace ${idx + 1}/${imgs.length}</div>
                                     </div>
-                                `).join('')}
-                            </div>
-
-                            <div class="p-5 text-slate-900">
-                                <div class="flex items-center justify-between mb-5 text-slate-900">
-                                    <div class="flex space-x-5 text-slate-900">
+                                `).join('')}</div>
+                            <div class="p-6">
+                                <div class="flex items-center justify-between mb-4">
+                                    <div class="flex space-x-3">
                                         <button onclick="window.handlePostUpvote(${post.id})" class="btn-action ${isLiked ? 'active' : ''}">
-                                            <i data-lucide="shield-alert" class="w-6 h-6 mr-1 text-slate-900"></i>
-                                            <span class="text-slate-900">Action</span>
+                                            <i data-lucide="shield-alert" class="w-5 h-5 mr-2"></i>Action ${post.upvotes_count || 0}
                                         </button>
-                                        <button onclick="window.location.hash = '#/post/${post.id}'" class="btn-action text-slate-900">
-                                            <i data-lucide="message-square" class="w-6 h-6 mr-1 text-slate-900"></i>
-                                            <span class="text-slate-900">Voices</span>
+                                        <button onclick="location.hash='#/post/${post.id}'" class="btn-action">
+                                            <i data-lucide="message-square" class="w-5 h-5 mr-2"></i>Voices ${post.comments?.length || 0}
                                         </button>
                                     </div>
-                                    <div class="flex space-x-2 text-slate-900 text-slate-900">
-                                        <button onclick="window.analyzePost(${post.id})" class="btn-action bg-indigo-50 text-indigo-600 px-4 rounded-xl text-indigo-600"><i data-lucide="sparkles" class="w-4 h-4 mr-1 text-indigo-600 text-indigo-600"></i>AI</button>
-                                        <button onclick="window.handleShare(${post.id})" class="btn-action text-slate-900 text-slate-900"><i data-lucide="share-2" class="w-6 h-6 text-slate-900 text-slate-900"></i></button>
+                                    <div class="flex space-x-2">
+                                        <button onclick="window.handlePostSave(${post.id})" class="btn-action ${isSaved ? 'saved' : ''}">
+                                            <i data-lucide="bookmark" class="w-5 h-5"></i>
+                                        </button>
+                                        <button onclick="window.handleShare(${post.id})" class="btn-action">
+                                            <i data-lucide="share-2" class="w-5 h-5"></i>
+                                        </button>
                                     </div>
                                 </div>
-                                
-                                <div id="ai-insight-${post.id}" class="hidden mb-4 p-4 bg-indigo-50 rounded-2xl border border-indigo-100 animate-in fade-in slide-in-from-top-2 text-slate-900">
-                                    <div class="flex items-center space-x-2 mb-1 text-slate-900 text-slate-900"><i data-lucide="cpu" class="w-3 h-3 text-indigo-600 text-indigo-600"></i><span class="ai-badge text-white">Intelligence Report</span></div>
-                                    <p id="ai-text-${post.id}" class="text-[11px] font-bold text-indigo-900 leading-relaxed text-indigo-900"></p>
-                                </div>
-
-                                <div class="px-1 text-slate-900 text-slate-900 text-slate-900">
-                                    <p class="text-[15px] leading-relaxed text-slate-700 font-medium text-slate-900 text-slate-900">
-                                        <span class="font-black text-slate-900 mr-2 uppercase tracking-tighter italic text-slate-900 text-slate-900">@${post.author}</span>${post.description}
-                                    </p>
-                                    <p class="text-[9px] text-slate-300 font-black uppercase mt-3 tracking-[3px] text-slate-300">${formatDateTime(post.created_at)}</p>
-                                </div>
-
-                                <form onsubmit="window.quickComment(event, ${post.id})" class="mt-6 flex items-center space-x-3 border-t border-slate-50 pt-5 text-slate-900">
-                                    <input name="comment" placeholder="Add community perspective..." required class="flex-1 bg-transparent border-none outline-none font-bold text-sm text-slate-700 placeholder:text-slate-200">
-                                    <button type="submit" class="text-indigo-600 font-black text-[11px] uppercase tracking-widest active:scale-90 transition-transform">Verify</button>
-                                </form>
+                                <p class="text-[15px] leading-relaxed dark:text-slate-200"><span class="font-black italic mr-2 dark:text-white">@${post.author}</span>${post.description}</p>
                             </div>
-                        </article> `}).join('')}
+                        </article>`;
+                    }).join('')}
                 </div>`;
             lucide.createIcons();
         }
 
         async function renderProfile(c, username) {
-            if (!username && !state.user) { window.location.hash = '#/auth'; return; }
-            let profile = state.user;
-            let isOwnProfile = !username || (state.user && username === state.user.username);
-            if (!isOwnProfile) {
-                const { data } = await sb.from('profiles').select('*').eq('username', username).single();
-                if (data) profile = data; else { window.location.hash = '#/feed'; return; }
-            }
-            const [{ count: followersCount }, { count: followingCount }] = await Promise.all([
-                sb.from('follows').select('*', { count: 'exact', head: true }).eq('following_id', profile.id),
-                sb.from('follows').select('*', { count: 'exact', head: true }).eq('follower_id', profile.id)
-            ]);
-            const isFollowing = state.myFollows.includes(profile.id);
-            const userPosts = state.posts.filter(p => p.author === profile.username);
+            const profileUser = username || state.user?.username;
+            if (!profileUser) return location.hash = '#/auth';
+            const { data: profile } = await sb.from('profiles').select('*').eq('username', profileUser).maybeSingle();
+            const userPosts = state.posts.filter(p => p.author === profileUser);
+            const isOwn = state.user && state.user.username === profileUser;
+            const isFollowing = profile && state.myFollows.includes(profile.id);
             const savedPosts = state.posts.filter(p => state.mySaves.includes(p.id));
-            const displayPosts = state.profileTab === 'reports' ? userPosts : savedPosts;
-
+            const displayPosts = state.profileTab === 'saved' && isOwn ? savedPosts : userPosts;
+            const [{ count: followers }, { count: following }] = await Promise.all([
+                sb.from('follows').select('*', { count: 'exact', head: true }).eq('following_id', profile?.id || '00000000-0000-0000-0000-000000000000'),
+                sb.from('follows').select('*', { count: 'exact', head: true }).eq('follower_id', profile?.id || '00000000-0000-0000-0000-000000000000')
+            ]);
             c.innerHTML = `
-                <div class="bg-white rounded-[40px] border border-slate-100 overflow-hidden shadow-sm page-transition text-slate-900 text-slate-900 text-slate-900">
-                    <div class="h-32 bg-indigo-600 relative"></div>
-                    <div class="px-6 pb-12 flex flex-col items-center text-center -mt-14">
-                        <div class="avatar-lg mb-6 z-10">
-                            <img src="${profile.avatar_url || 'https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=200&h=200&fit=crop'}" class="w-full h-full object-cover">
+                <div class="bg-white dark:bg-slate-900 rounded-[40px] border dark:border-slate-800 overflow-hidden pb-10 shadow-sm">
+                    <div class="h-32 bg-primary relative"></div>
+                    <div class="px-6 pb-10 flex flex-col items-center -mt-14">
+                        <div class="avatar-lg mb-6 shadow-2xl border-4"><img src="${profile?.avatar_url || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + profileUser}"></div>
+                        <h2 class="text-3xl font-black uppercase italic tracking-tighter dark:text-white">@${profileUser}</h2>
+                        <div class="flex flex-col items-center space-y-2 mt-6 w-full px-10">
+                            ${profile?.twitter ? `<a href="https://twitter.com/${profile.twitter}" target="_blank" class="w-full py-3 bg-slate-50 dark:bg-slate-800 rounded-2xl flex items-center justify-center space-x-3 text-slate-600 dark:text-slate-300 font-bold text-xs"><i data-lucide="twitter" class="w-4 h-4"></i><span>@${profile.twitter}</span></a>` : ''}
+                            ${profile?.instagram ? `<a href="https://instagram.com/${profile.instagram}" target="_blank" class="w-full py-3 bg-slate-50 dark:bg-slate-800 rounded-2xl flex items-center justify-center space-x-3 text-slate-600 dark:text-slate-300 font-bold text-xs"><i data-lucide="instagram" class="w-4 h-4"></i><span>@${profile.instagram}</span></a>` : ''}
+                            ${profile?.website ? `<a href="${profile.website.startsWith('http') ? profile.website : 'https://' + profile.website}" target="_blank" class="w-full py-3 bg-slate-50 dark:bg-slate-800 rounded-2xl flex items-center justify-center space-x-3 text-slate-600 dark:text-slate-300 font-bold text-xs"><i data-lucide="globe" class="w-4 h-4"></i><span>${profile.website}</span></a>` : ''}
                         </div>
-                        <h2 class="text-3xl font-black text-slate-900 tracking-tighter uppercase italic text-slate-900 text-slate-900">${profile.display_name || profile.username}</h2>
-                        <p class="text-indigo-600 font-bold text-[10px] mt-2 tracking-[6px] uppercase text-indigo-600 text-indigo-600">@${profile.username}</p>
-                        <p class="text-sm text-slate-500 font-medium mt-6 px-4 leading-relaxed text-slate-500">${profile.bio || 'Verified National Action Monitor'}</p>
-                        <div class="grid grid-cols-3 gap-6 mt-10 py-6 border-y border-slate-50 w-full text-slate-900 text-slate-900 text-slate-900 text-slate-900">
-                            <div class="text-center" onclick="window.location.hash='#/u/${profile.username}/followers'"><p class="font-black text-xl text-slate-900 text-slate-900">${followersCount || 0}</p><p class="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-1 text-slate-400">Followers</p></div>
-                            <div class="text-center" onclick="window.location.hash='#/u/${profile.username}/following'"><p class="font-black text-xl text-slate-900 text-slate-900">${followingCount || 0}</p><p class="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-1 text-slate-400">Following</p></div>
-                            <div class="text-center text-slate-900"><p class="font-black text-xl text-slate-900 text-slate-900">${userPosts.length}</p><p class="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-1 text-slate-400">Reports</p></div>
+                        <p class="text-xs text-slate-400 font-medium text-center mt-6 px-10 leading-relaxed">${profile?.bio || 'Verified Monitor.'}</p>
+                        <div class="grid grid-cols-3 gap-6 mt-10 py-6 border-y border-slate-50 dark:border-slate-800 w-full text-center">
+                            <div><p class="font-black text-xl dark:text-white">${userPosts.length}</p><p class="text-[9px] font-black uppercase text-slate-400 mt-1">Traces</p></div>
+                            <div class="cursor-pointer" onclick="location.hash='#/u/${profileUser}/followers'"><p class="font-black text-xl dark:text-white">${followers || 0}</p><p class="text-[9px] font-black uppercase text-slate-400 mt-1">Followers</p></div>
+                            <div class="cursor-pointer" onclick="location.hash='#/u/${profileUser}/following'"><p class="font-black text-xl dark:text-white">${following || 0}</p><p class="text-[9px] font-black uppercase text-slate-400 mt-1">Following</p></div>
                         </div>
-                        <div class="w-full pt-8 px-4 flex flex-col text-slate-900 text-slate-900 text-slate-900">
-                            ${isOwnProfile ? `<button onclick="window.location.hash='#/edit-profile'" class="w-full py-5 bg-slate-900 text-white rounded-[24px] font-black text-[10px] uppercase tracking-widest shadow-xl active:scale-95 transition-transform text-white text-white">Edit Citizen ID</button>` : `<button id="follow-btn" onclick="window.handleFollow('${profile.id}')" class="w-full py-5 ${isFollowing ? 'bg-slate-100 text-slate-600' : 'bg-indigo-600 text-white'} rounded-[24px] font-black text-[10px] uppercase tracking-widest shadow-xl active:scale-95 transition-all text-white text-white text-white">${isFollowing ? 'Connected' : 'Connect'}</button>`}
-                        </div>
+                        ${isOwn ? `<button onclick="location.hash='#/edit-profile'" class="w-full mt-8 py-5 bg-primary text-white rounded-[24px] font-black text-[10px] uppercase tracking-widest shadow-xl">Edit Citizen ID</button>` : 
+                        `<button onclick="window.handleFollow('${profile?.id}')" class="w-full mt-8 py-5 ${isFollowing ? 'bg-slate-100 text-slate-600' : 'bg-primary text-white'} rounded-[24px] font-black text-[10px] uppercase tracking-widest shadow-xl transition-all">${isFollowing ? 'Connected' : 'Establish Link'}</button>`}
                     </div>
-                    <div class="flex border-t border-slate-50 text-slate-900 text-slate-900">
-                        <button onclick="state.profileTab='reports'; renderProfile(document.getElementById('viewport'), '${username || ''}')" class="flex-1 profile-tab ${state.profileTab==='reports'?'active':''} text-slate-900 text-slate-900">Active Traces</button>
-                        ${isOwnProfile ? `<button onclick="state.profileTab='saved'; renderProfile(document.getElementById('viewport'), '${username || ''}')" class="flex-1 profile-tab ${state.profileTab==='saved'?'active':''} text-slate-900 text-slate-900">Saves</button>` : ''}
+                    <div class="flex border-t dark:border-slate-800">
+                        <button onclick="state.profileTab='reports'; renderProfile(document.getElementById('viewport'), '${username||''}')" class="profile-tab ${state.profileTab === 'reports' ? 'active' : ''}">Traces</button>
+                        ${isOwn ? `<button onclick="state.profileTab='saved'; renderProfile(document.getElementById('viewport'), '${username||''}')" class="profile-tab ${state.profileTab === 'saved' ? 'active' : ''}">Saved</button>` : ''}
                     </div>
-                    <div class="grid grid-cols-3 gap-0.5 bg-slate-50 p-0.5 text-slate-900 text-slate-900">
+                    <div class="grid grid-cols-3 gap-0.5 bg-slate-100 dark:bg-slate-800 p-0.5">
                         ${displayPosts.map(p => `
-                            <div class="aspect-square bg-white overflow-hidden relative group text-slate-900 text-slate-900 text-slate-900" onclick="window.location.hash='#/post/${p.id}'">
+                            <div class="aspect-square bg-white dark:bg-slate-900 cursor-pointer overflow-hidden relative group" onclick="location.hash='#/post/${p.id}'">
                                 <img src="${parseImages(p.image)[0]}" class="w-full h-full object-cover">
-                                ${isOwnProfile && state.profileTab === 'reports' ? `
-                                    <div class="action-button-float text-slate-900">
-                                        <button onclick="event.stopPropagation(); window.handlePostEdit(${p.id})" class="w-9 h-9 bg-white/90 backdrop-blur-md text-indigo-600 rounded-full flex items-center justify-center shadow-xl border border-indigo-100 active:scale-75 text-indigo-600"><i data-lucide="edit-3" class="w-3.5 h-3.5 text-indigo-600"></i></button>
-                                        <button onclick="event.stopPropagation(); window.handlePostDelete(${p.id})" class="w-9 h-9 bg-white/90 backdrop-blur-md text-red-600 rounded-full flex items-center justify-center shadow-xl border border-red-100 active:scale-75 text-red-600"><i data-lucide="trash-2" class="w-3.5 h-3.5 text-red-600"></i></button>
-                                    </div>
-                                ` : ''}
+                                ${isOwn && state.profileTab === 'reports' ? `<div class="action-button-float"><button onclick="event.stopPropagation(); handlePostEdit(${p.id})" class="w-9 h-9 bg-white/90 backdrop-blur-md text-primary rounded-full flex items-center justify-center shadow-xl active:scale-75"><i data-lucide="edit-3" class="w-3.5 h-3.5"></i></button><button onclick="event.stopPropagation(); handlePostDelete(${p.id})" class="w-9 h-9 bg-white/90 backdrop-blur-md text-red-600 rounded-full flex items-center justify-center shadow-xl active:scale-75"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button></div>` : ''}
                             </div>`).join('')}
                     </div>
                 </div>`;
@@ -545,160 +869,66 @@
 
         async function renderPostDetail(c, id) {
             const post = state.posts.find(p => p.id == id);
-            if (!post) return window.location.hash = '#/feed';
+            if (!post) return location.hash = '#/feed';
             const { data: comments } = await sb.from('comments').select('*').eq('post_id', post.id).order('created_at', { ascending: true });
-            const images = parseImages(post.image);
-            c.innerHTML = `<div class="bg-white rounded-[40px] border border-slate-100 overflow-hidden shadow-sm page-transition text-slate-900"><header class="p-6 border-b border-slate-50 flex items-center justify-between sticky top-0 bg-white/95 backdrop-blur-xl z-10 text-slate-900"><button onclick="window.history.back()" class="p-4 hover:bg-slate-50 rounded-2xl transition-all text-slate-900"><i data-lucide="arrow-left" class="w-6 h-6"></i></button><h2 class="text-[11px] font-black uppercase tracking-[4px]">Investigation Trace</h2></header><div class="horizontal-media-scroll no-scrollbar">${images.map((img, i) => `<div class="media-snap-item"><img src="${img}" onclick="openFullscreen('${post.image}', ${i})" class="w-full h-full object-contain"><button onclick="event.stopPropagation(); window.downloadBlob('${img}')" class="absolute bottom-4 right-4 p-3 bg-black/50 backdrop-blur-md rounded-full text-white shadow-xl active:scale-75 transition-transform"><i data-lucide="download" class="w-4 h-4"></i></button></div>`).join('')}</div><div class="p-6 border-b border-slate-50 text-slate-900"><div class="flex items-start space-x-4 mb-8 text-slate-900"><div class="w-12 h-12 rounded-full overflow-hidden border border-slate-100 bg-slate-50 flex items-center justify-center text-slate-900"><img src="${post.author_avatar || 'https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=100&h=100&fit=crop'}" class="w-full h-full object-cover"></div><div class="flex-1 pt-1 text-slate-900"><p class="text-lg font-black text-slate-900 tracking-tighter">@${post.author}</p><p class="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-4 flex items-center text-indigo-500"><i data-lucide="map-pin" class="w-3 h-3 mr-1 text-indigo-500"></i>${post.location}</p><p class="text-[16px] leading-relaxed text-slate-800 font-medium text-slate-800">${post.description}</p></div></div></div><div class="p-6 space-y-6 bg-slate-50/40 min-h-[300px] text-slate-900">${(comments || []).map(com => `<div class="flex items-start space-x-4 text-slate-900"><div class="w-10 h-10 rounded-[14px] bg-white border border-slate-100 flex items-center justify-center font-bold text-[9px] text-slate-400 uppercase shadow-lg text-slate-400">@</div><div class="flex-1 bg-white p-5 rounded-[28px] border border-slate-100 shadow-sm text-slate-900"><p class="text-sm text-slate-700 leading-relaxed text-slate-700"><span class="font-black text-slate-900 mr-2 text-slate-900">@${com.username}</span>${com.content}</p></div></div>`).join('')}</div></div>`; lucide.createIcons(); }
-
-        function renderMap(c) {
-            c.innerHTML = `<div id="map-container"></div>`;
-            setTimeout(() => {
-                const map = L.map('map-container', { zoomControl: false }).setView([state.currentLat, state.currentLng], 6);
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-                const grouped = {};
-                state.posts.forEach(p => { if (p.latitude && p.longitude) { const k = `${p.latitude},${p.longitude}`; (grouped[k] = grouped[k] || []).push(p); } });
-                Object.keys(grouped).forEach(k => {
-                    const group = grouped[k];
-                    const severity = group.length * 10 + group.reduce((acc, p) => acc + (p.upvotes_count || 0), 0);
-                    const color = severity > 100 ? '#ef4444' : severity > 30 ? '#f97316' : '#3b82f6';
-                    const icon = L.divIcon({ className: 'custom-pin', html: `<div style="color:${color}; filter:drop-shadow(0 4px 10px rgba(0,0,0,0.3))"><svg viewBox="0 0 24 24" width="40" height="40" stroke="currentColor" stroke-width="3.5" fill="white" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3" fill="currentColor"/></svg></div>`, iconSize: [40, 40], iconAnchor: [20, 40] });
-                    const popupHtml = `<div class="p-3 w-64 text-slate-900 bg-white rounded-3xl max-h-64 overflow-y-auto no-scrollbar"><h3 class="font-black text-[10px] uppercase text-indigo-600 mb-3 tracking-[3px] text-indigo-600">Local Cluster (${group.length})</h3><div class="space-y-4 text-slate-900 text-slate-900">${group.map(p => `<div class="flex items-center space-x-3 border-b border-slate-50 pb-3 cursor-pointer hover:bg-slate-50 rounded-xl transition-all" onclick="window.location.hash='#/post/${p.id}'"><img src="${parseImages(p.image)[0]}" class="w-12 h-12 object-cover rounded-lg shadow-sm"><div class="flex-1 overflow-hidden"><p class="text-[11px] font-black text-slate-900 truncate">@${p.author}</p><p class="text-[9px] text-slate-400 truncate">${p.description}</p></div></div>`).join('')}</div></div>`;
-                    L.marker(k.split(',').map(Number), { icon }).addTo(map).bindPopup(popupHtml);
-                });
-                if (state.mapTarget) { map.flyTo([state.mapTarget.latitude, state.mapTarget.longitude], 18, { animate: true, duration: 1.2 }); state.mapTarget = null; }
-                map.invalidateSize();
-            }, 300);
-        }
-
-        // --- 5. CAMERA ENGINE ---
-
-        async function startCamera() {
-            const overlay = document.getElementById('camera-overlay');
-            const video = document.getElementById('video-feed');
-            overlay.style.display = 'flex';
-            try {
-                state.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false });
-                video.srcObject = state.stream;
-                await reverseGeocode(state.currentLat, state.currentLng);
-                document.getElementById('cam-address').innerText = state.currentAddr.toUpperCase();
-            } catch (e) { showToast("Lens Link Denied"); stopCamera(); }
-        }
-
-        function stopCamera() { if (state.stream) state.stream.getTracks().forEach(t => t.stop()); document.getElementById('camera-overlay').style.display = 'none'; }
-
-        async function captureFrame() {
-            const video = document.getElementById('video-feed');
-            const canvas = document.createElement('canvas');
-            canvas.width = 1080; canvas.height = 1350; // Strict 4:5
-            const ctx = canvas.getContext('2d');
-            const vw = video.videoWidth; const vh = video.videoHeight;
-            const targetRatio = 4/5;
-            let sx, sy, sw, sh;
-            if (vw/vh > targetRatio) { sh = vh; sw = vh * targetRatio; sx = (vw - sw) / 2; sy = 0; }
-            else { sw = vw; sh = vw / targetRatio; sx = 0; sy = (vh - sh) / 2; }
-            ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
-            const barH = 240;
-            ctx.fillStyle = "rgba(0,0,0,0.8)"; ctx.fillRect(0, canvas.height - barH, canvas.width, barH);
-            ctx.fillStyle = "white"; ctx.font = "900 52px Plus Jakarta Sans"; ctx.fillText("CIVICGRAM EVIDENCE", 60, canvas.height - 150);
-            ctx.fillStyle = "#a5b4fc"; ctx.font = "700 26px Plus Jakarta Sans"; ctx.fillText(state.currentAddr.toUpperCase(), 60, canvas.height - 100);
-            ctx.fillStyle = "white"; ctx.font = "600 22px Plus Jakarta Sans"; ctx.fillText(`GPS: ${state.currentLat.toFixed(6)} | ${state.currentLng.toFixed(6)}`, 60, canvas.height - 50);
-            state.currentCapture = canvas.toDataURL('image/jpeg', 0.9);
-            document.getElementById('review-img').src = state.currentCapture;
-            document.getElementById('capture-review-overlay').style.display = 'flex';
-        }
-
-        // --- 6. ACTION HANDLERS ---
-
-        window.handleLogout = async () => { await sb.auth.signOut(); window.location.hash = '#/auth'; handleNavigation(); };
-        window.zoomToPostOnMap = (postId) => { const post = state.posts.find(p => p.id == postId); if (post && post.latitude && post.longitude) { state.mapTarget = post; window.location.hash = '#/map'; } else showToast("Trace Coordinates Missing"); };
-        window.downloadBlob = (url) => { const l = document.body.appendChild(document.createElement('a')); l.href = url; l.download = `CivicGram_Trace_${Date.now()}.jpg`; l.click(); document.body.removeChild(l); };
-        window.analyzePost = async (postId) => { const post = state.posts.find(p => p.id == postId); const box = document.getElementById(`ai-insight-${postId}`); const txt = document.getElementById(`ai-text-${postId}`); if (!post || box.classList.contains('active')) return; box.classList.remove('hidden'); box.classList.add('active'); txt.innerText = "Processing AI Analysis..."; const analysis = await geminiAnalysis(post.description); txt.innerText = analysis; };
-        window.quickComment = async (e, pId) => { e.preventDefault(); const c = e.target.comment.value.trim(); if (!c || !state.user) return; await sb.from('comments').insert({ post_id: pId, user_id: state.user.id, username: state.user.username, content: c }); e.target.reset(); await fetchPosts(); handleNavigation(); showToast("Perspective Recorded"); };
-        window.handlePostUpvote = async (postId) => { if (!state.user) { window.location.hash = '#/auth'; return; } const post = state.posts.find(p => p.id == postId); const isLiked = state.myLikes.includes(postId); if (isLiked) { state.myLikes = state.myLikes.filter(id => id !== postId); await sb.from('post_upvotes').delete().match({ post_id: postId, user_id: state.user.id }); } else { state.myLikes.push(postId); await sb.from('post_upvotes').insert({ post_id: postId, user_id: state.user.id }); if (post.author_id !== state.user.id) await sb.from('notifications').insert({ user_id: post.author_id, actor_id: state.user.id, actor_username: state.user.username, post_id: postId, type: 'upvote' }); } await fetchPosts(); handleNavigation(); };
-        window.handlePostDelete = (postId) => { const overlay = document.getElementById('modal-overlay'); const confirmBtn = document.getElementById('modal-confirm-btn'); overlay.style.display = 'flex'; confirmBtn.onclick = async () => { await sb.from('posts').delete().eq('id', postId); await fetchPosts(); state.currentView = null; window.location.hash = '#/u'; handleNavigation(); showToast("Evidence Purged"); closeModal(); }; };
-        window.handlePostEdit = (postId) => { const post = state.posts.find(p => p.id == postId); if (post) renderEditForm(document.getElementById('viewport'), post); };
-        
-        function confirmCapture() {
-            const dataUrl = state.currentCapture;
-            state.tempCapturedData.push(dataUrl);
-            state.isUploading = true;
-            fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, { method: 'POST', body: (function(){ const fd = new FormData(); fd.append('image', dataUrl.split(',')[1]); return fd; })() })
-                .then(res => res.json())
-                .then(d => { if (d.success) state.tempImageUrls.push(d.data.url); })
-                .finally(() => { state.isUploading = false; discardCapture(); refreshEvidenceTray(); });
-        }
-
-        function discardCapture() { document.getElementById('capture-review-overlay').style.display = 'none'; state.currentCapture = null; }
-
-        function refreshEvidenceTray() {
-            const grid = document.getElementById('multi-preview-grid');
-            if (!grid) return; grid.innerHTML = '';
-            state.tempCapturedData.forEach((base64, index) => {
-                const wrap = document.createElement('div');
-                wrap.className = "relative aspect-[4/5]";
-                wrap.onclick = () => openFullscreen(state.tempCapturedData, index);
-                wrap.innerHTML = `<img src="${base64}" class="w-full h-full object-cover rounded-2xl border border-slate-100 shadow-md cursor-zoom-in"><button onclick="event.stopPropagation(); state.tempCapturedData.splice(${index},1); state.tempImageUrls.splice(${index},1); refreshEvidenceTray();" class="absolute -top-2 -right-2 bg-red-600 text-white rounded-full p-2 shadow-2xl border-4 border-white text-white"><i data-lucide="x" class="w-3 h-3 text-white"></i></button>`;
-                grid.appendChild(wrap);
-            });
-            grid.classList.toggle('hidden', state.tempCapturedData.length === 0);
+            const imgs = parseImages(post.image);
+            const isLiked = state.myLikes.includes(post.id);
+            const isSaved = state.mySaves.includes(post.id);
+            c.innerHTML = `
+                <div class="bg-white dark:bg-slate-900 rounded-[40px] overflow-hidden border dark:border-slate-800 pb-32"><header class="p-6 border-b dark:border-slate-800 flex items-center justify-between sticky top-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl z-10"><button onclick="history.back()" class="p-2 hover:bg-slate-50 rounded-xl transition-all"><i data-lucide="arrow-left"></i></button><span class="text-[10px] font-black uppercase tracking-[4px]">Investigation Root</span><div class="w-10"></div></header><div class="horizontal-media-scroll no-scrollbar">${imgs.map(img => `<div class="media-snap-item"><img src="${img}" class="w-full h-full object-contain" onclick="window.openFullscreen('${img}')"><button onclick="event.stopPropagation(); window.downloadBlob('${img}')" class="absolute bottom-4 right-4 p-3 bg-black/40 rounded-full text-white shadow-xl"><i data-lucide="download" class="w-4 h-4"></i></button></div>`).join('')}</div><div class="p-8"><div class="flex items-center space-x-3 mb-8"><div class="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden shadow-sm"><img src="${post.author_avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + post.author}"></div><div><p class="text-sm font-black dark:text-white">@${post.author}</p><p class="text-[9px] text-slate-400 font-black uppercase tracking-widest">${new Date(post.created_at).toLocaleString()}</p></div></div><div class="flex items-center justify-between mb-8"><div class="flex space-x-3"><button onclick="window.handlePostUpvote(${post.id})" class="btn-action ${isLiked ? 'active' : ''}"><i data-lucide="shield-alert" class="w-5 h-5 mr-2"></i>Action ${post.upvotes_count || 0}</button></div><div class="flex space-x-2"><button onclick="window.handlePostSave(${post.id})" class="btn-action ${isSaved ? 'saved' : ''}"><i data-lucide="bookmark" class="w-5 h-5"></i></button><button onclick="window.handleShare(${post.id})" class="btn-action"><i data-lucide="share-2" class="w-5 h-5"></i></button></div></div><p class="text-slate-700 dark:text-slate-200 leading-relaxed text-lg font-medium mb-12">${post.description}</p><form onsubmit="window.handleComment(event, ${post.id})" class="mt-12 flex items-center space-x-3 bg-slate-50 dark:bg-slate-800 p-5 rounded-[32px]"><input name="comment" id="comment-input" placeholder="Verify this trace..." required class="flex-1 bg-transparent border-none outline-none font-bold text-sm dark:text-white"><button type="submit" class="text-primary font-black text-[10px] uppercase tracking-widest px-4">Log</button></form><div class="space-y-4 mt-10">${(comments || []).map(com => `<div class="p-4 bg-slate-50 dark:bg-slate-800 rounded-[20px] text-sm dark:text-slate-200 border dark:border-slate-800"><p><strong class="font-black italic mr-2 text-slate-900 dark:text-white">@${com.username}</strong> ${com.content}</p><div class="mt-3"><button onclick="window.initiateReply(${JSON.stringify(com).replace(/"/g, '&quot;')})" class="text-[9px] font-black uppercase text-primary tracking-widest">Reply</button></div></div>`).join('')}</div></div></div>`;
             lucide.createIcons();
         }
 
-        function renderCreate(c) { 
+        function renderCreate(c) {
             reverseGeocode(state.currentLat, state.currentLng);
-            c.innerHTML = `<div class="bg-white rounded-[40px] shadow-sm border border-slate-100 overflow-hidden page-transition text-slate-900"><header class="p-10 border-b border-slate-50 flex justify-between items-center bg-slate-50/50 text-slate-900"><h2 class="text-3xl font-black italic uppercase italic text-slate-900">Secure Trace</h2><button form="create-form" type="submit" id="submit-post-btn" class="bg-indigo-700 text-white px-12 py-6 rounded-[36px] font-black text-xs uppercase tracking-widest shadow-2xl transition-all hover:scale-105 active:scale-95 text-white">Transmit</button></header><form id="create-form" onsubmit="window.handleCreate(event)" class="p-10 space-y-14 text-slate-900 text-slate-900"><div class="flex flex-col items-center justify-center text-slate-900 text-slate-900"><div class="aspect-[4/5] w-full max-w-[320px] group flex flex-col items-center justify-center cursor-pointer overflow-hidden shadow-sm bg-slate-50 rounded-[40px] border-2 border-dashed border-slate-200 text-slate-900 text-slate-900" id="post-img-preview-container"><div id="upload-placeholder" onclick="startCamera()" class="${state.tempCapturedData.length ? 'hidden' : ''} flex flex-col items-center py-16 text-slate-900 text-slate-900"><div class="w-16 h-16 bg-white text-indigo-600 rounded-3xl flex items-center justify-center mb-6 shadow-lg border border-slate-100 text-indigo-600 text-indigo-600"><i data-lucide="camera" class="w-10 h-10 text-indigo-600 text-indigo-600"></i></div><span class="text-[10px] font-black uppercase text-slate-400 tracking-[4px] text-slate-900 text-slate-900">Launch Lens</span></div><div id="multi-preview-grid" class="${state.tempCapturedData.length ? '' : 'hidden'} grid grid-cols-2 gap-2 w-full p-4 z-10 overflow-y-auto h-full text-slate-900 text-slate-900"></div></div>${state.tempCapturedData.length ? `<button type="button" onclick="startCamera()" class="mt-4 text-[10px] font-black uppercase text-indigo-600 tracking-widest flex items-center text-slate-900 text-slate-900"><i data-lucide="plus" class="w-4 h-4 mr-2 text-slate-900 text-slate-900"></i>Add More Evidence</button>` : ''}</div><div class="space-y-10 text-slate-900 text-slate-900 text-slate-900"><textarea id="c-desc" placeholder="Details of the issue trace..." required class="w-full text-3xl p-8 outline-none border-none resize-none h-56 font-bold text-slate-900 bg-slate-50/30 rounded-[48px] shadow-inner leading-relaxed text-slate-900 text-slate-900"></textarea><div class="bg-slate-50 p-10 rounded-[48px] border border-slate-100 shadow-sm text-slate-900 text-slate-900 text-slate-900 text-slate-900"><label class="block text-[11px] text-slate-400 font-black uppercase mb-5 tracking-widest text-slate-900 text-slate-900 text-slate-900">Location Trace</label><input id="c-loc" type="text" value="${state.currentAddr}" required class="w-full bg-transparent border-none outline-none font-black text-indigo-600 text-xl leading-none text-slate-900 text-slate-900"></div></div></form></div>`; lucide.createIcons(); if (state.tempCapturedData.length) refreshEvidenceTray(); }
-        function renderEditForm(c, post) { c.innerHTML = `<div class="bg-white rounded-[64px] shadow-sm border border-slate-100 overflow-hidden page-transition text-slate-900 text-slate-900 text-slate-900"><header class="p-14 border-b border-slate-50 flex justify-between items-center bg-slate-50/50 text-slate-900 text-slate-900 text-slate-900 text-slate-900"><h2 class="text-xl font-black italic tracking-tighter uppercase italic text-slate-900 text-slate-900">Refine Report</h2><button id="update-post-btn" onclick="window.handleUpdatePost(event, ${post.id})" class="bg-blue-700 text-white px-12 py-6 rounded-[32px] font-black text-xs uppercase tracking-widest shadow-xl text-white text-white">Update</button></header><form class="p-14 space-y-14 text-slate-900 text-slate-900 text-slate-900 text-slate-900 text-slate-900"><div class="grid grid-cols-3 gap-2 p-4 bg-slate-50 rounded-3xl text-slate-900 text-slate-900 text-slate-900 text-slate-900">${parseImages(post.image).map(img => `<img src="${img}" class="h-24 w-full object-cover rounded-2xl border border-slate-200 shadow-sm text-slate-900 text-slate-900 text-slate-900 text-slate-900">`).join('')}</div><div class="space-y-12 text-slate-900 text-slate-900 text-slate-900 text-slate-900 text-slate-900 text-slate-900"><textarea id="e-desc" required class="w-full text-2xl p-8 outline-none border-none resize-none h-56 font-bold text-slate-900 bg-slate-50/30 rounded-[40px] shadow-inner text-slate-900 text-slate-900 text-slate-900 text-slate-900 text-slate-900">${post.description}</textarea></div></form></div>`; lucide.createIcons(); }
-        window.handleCreate = async (e) => { e.preventDefault(); const btn = document.getElementById('submit-post-btn'); if (!state.tempImageUrls.length) return showToast("Capture evidence first"); btn.disabled = true; try { const { error } = await sb.from('posts').insert([{ author: state.user.username, author_id: state.user.id, author_avatar: state.user.avatar_url || null, image: JSON.stringify(state.tempImageUrls), category: 'Roads', location: document.getElementById('c-loc').value, description: document.getElementById('c-desc').value, status: 'Pending', latitude: state.currentLat, longitude: state.currentLng }]); if (error) throw error; showToast("Transmission Successful"); window.location.hash = '#/feed'; handleNavigation(); } catch (err) { alert(err.message); btn.disabled = false; } };
-
-        // --- 7. ROUTER & NAVIGATION ENGINE ---
-
-        async function handleNavigation() {
-            const viewport = document.getElementById('viewport');
-            const hash = window.location.hash || '#/feed';
-            const route = hash.split('/')[1] || 'feed';
-            const param = hash.split('/')[2];
-            
-            // Force re-render for critical views
-            state.currentView = route + (param || '') + (route === 'auth' ? state.authMode : '');
-
-            if (['create', 'notifications', 'edit-profile'].includes(route) && !state.user) { window.location.hash = '#/auth'; return; }
-            document.querySelectorAll('.nav-link, .nav-btn').forEach(btn => btn.classList.toggle('active', btn.getAttribute('data-route') === route));
-
-            switch(route) {
-                case 'feed': renderFeed(viewport); break;
-                case 'create': renderCreate(viewport); break;
-                case 'u': await renderProfile(viewport, param); break;
-                case 'post': await renderPostDetail(viewport, param); break;
-                case 'map': renderMap(viewport); break;
-                case 'notifications': renderNotifications(viewport); break;
-                case 'auth': renderAuth(viewport); break;
-                case 'edit-profile': renderEditProfile(viewport); break;
-                default: window.location.hash = '#/feed';
-            }
+            c.innerHTML = `<div class="bg-white dark:bg-slate-900 rounded-[40px] border dark:border-slate-800 shadow-sm overflow-hidden pb-32 animate-in fade-in duration-500"><header class="p-10 border-b dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50"><h2 class="text-2xl font-black italic uppercase dark:text-white">Secure Trace</h2><button id="transmit-btn" onclick="handleCreatePost()" class="bg-primary text-white px-10 py-5 rounded-[30px] font-black text-[10px] uppercase tracking-widest shadow-xl transition-all active:scale-95">Transmit</button></header><div class="p-10 space-y-10"><div class="grid grid-cols-2 gap-3">${state.tempCapturedData.map((data, i) => `<div class="relative aspect-[4/5] rounded-2xl overflow-hidden group"><img src="${data}" class="w-full h-full object-cover cursor-zoom-in" onclick="window.openFullscreen('${data}')"><div class="absolute top-2 right-2 flex flex-col gap-2"><button onclick="event.stopPropagation(); state.tempCapturedData.splice(${i},1); state.tempImageUrls.splice(${i},1); renderCreate(document.getElementById('viewport'))" class="w-8 h-8 bg-red-600 text-white rounded-full flex items-center justify-center shadow-lg"><i data-lucide="x" class="w-4 h-4"></i></button><button onclick="event.stopPropagation(); window.downloadBlob('${data}')" class="w-8 h-8 bg-slate-800/80 text-white rounded-full flex items-center justify-center shadow-lg backdrop-blur-md"><i data-lucide="download" class="w-4 h-4"></i></button></div></div>`).join('')}<div onclick="startCamera('post')" class="aspect-[4/5] bg-slate-50 dark:bg-slate-800 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-2xl flex flex-col items-center justify-center cursor-pointer text-slate-300 hover:text-primary transition-all"><i data-lucide="camera" class="w-8 h-8 mb-2"></i><span class="text-[9px] font-black uppercase">Capture</span></div></div><div class="space-y-4"><label class="text-[10px] font-black uppercase text-slate-400 px-4 tracking-widest">Issue Classification</label><div class="flex flex-wrap gap-2 px-2">${state.categories.map(cat => `<button onclick="state.selectedCategory='${cat}'; renderCreate(document.getElementById('viewport'))" class="category-pill ${state.selectedCategory === cat ? 'active' : ''}">${cat}</button>`).join('')}</div></div><textarea id="post-desc" placeholder="Details of the issue trace..." class="w-full h-40 font-bold text-2xl outline-none border-none resize-none placeholder:text-slate-200 dark:bg-transparent dark:text-white"></textarea><div class="p-8 bg-slate-50 dark:bg-slate-800 rounded-[32px] border dark:border-slate-700"><label class="text-[9px] font-black uppercase text-slate-400 block mb-3">Location Anchor</label><input id="c-loc" type="text" value="${state.currentAddr}" class="w-full bg-transparent font-black text-primary outline-none text-xl"></div></div></div>`;
             lucide.createIcons();
-            window.scrollTo(0,0);
         }
 
         async function init() {
-            if ("geolocation" in navigator) { 
-                navigator.geolocation.getCurrentPosition((p) => { 
-                    state.currentLat = p.coords.latitude; 
-                    state.currentLng = p.coords.longitude; 
-                    reverseGeocode(state.currentLat, state.currentLng); 
-                }, () => {}, { enableHighAccuracy: true }); 
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(p => {
+                    state.currentLat = p.coords.latitude; state.currentLng = p.coords.longitude;
+                    reverseGeocode(state.currentLat, state.currentLng);
+                });
             }
             const { data: { session } } = await sb.auth.getSession();
             await syncUser(session?.user);
-            sb.auth.onAuthStateChange(async (e, s) => { 
-                await syncUser(s?.user); 
-                if (e === 'SIGNED_IN' && window.location.hash.includes('auth')) {
-                    window.location.hash = '#/feed';
-                    handleNavigation();
-                }
-            });
+            sb.auth.onAuthStateChange((e, s) => { syncUser(s?.user).then(handleNavigation); });
             await fetchPosts();
             window.addEventListener('hashchange', handleNavigation);
             handleNavigation();
+        }
+
+        function renderMap(c) {
+            if (mapInstance) { mapInstance.off(); mapInstance.remove(); mapInstance = null; }
+            c.innerHTML = `<div id="map-container" style="height: calc(100vh - 120px); width: 100%;" class="animate-in fade-in duration-500"></div>`;
+            setTimeout(() => {
+                const container = document.getElementById('map-container');
+                if (!container) return;
+                mapInstance = L.map('map-container', { zoomControl: false, preferCanvas: true });
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapInstance);
+                const grouped = {};
+                state.posts.forEach(p => {
+                    if (p.latitude && p.longitude) {
+                        const key = `${p.latitude.toFixed(6)},${p.longitude.toFixed(6)}`;
+                        if (!grouped[key]) grouped[key] = [];
+                        grouped[key].push(p);
+                    }
+                });
+                Object.keys(grouped).forEach(key => {
+                    const group = grouped[key];
+                    const [lat, lng] = key.split(',').map(Number);
+                    const maxActions = Math.max(...group.map(p => p.upvotes_count || 0));
+                    const color = maxActions >= 15 ? '#ef4444' : maxActions >= 5 ? '#f97316' : '#3b82f6';
+                    const icon = L.divIcon({ className: 'custom-pin', html: `<div style="color:${color}; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.4));"><svg viewBox="0 0 24 24" width="44" height="44" stroke="white" stroke-width="2.5" fill="currentColor"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3" fill="white"/></svg>${group.length > 1 ? `<div style="position:absolute; top:-4px; right:-4px; background:white; color:black; font-size:10px; font-weight:900; width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; border:2px solid ${color}; box-shadow: 0 2px 5px rgba(0,0,0,0.2)">${group.length}</div>` : ''}</div>`, iconSize: [44, 44], iconAnchor: [22, 44] });
+                    const popupHtml = `<div class="flex flex-col max-h-[320px] overflow-hidden rounded-[28px] bg-white"><header class="p-4 bg-slate-50 border-b flex justify-between items-center"><span class="text-[10px] font-black uppercase text-slate-400 tracking-widest">${group.length} Reports</span></header><div class="overflow-y-auto no-scrollbar">${group.map(p => `<div onclick="location.hash='#/post/${p.id}'" class="p-4 border-b last:border-0 flex items-center space-x-3 hover:bg-slate-50 transition-all cursor-pointer"><img src="${parseImages(p.image)[0]}" class="w-14 h-14 rounded-xl object-cover shadow-sm bg-slate-100"><div class="flex-1 truncate"><p class="text-[12px] font-black text-slate-900 truncate">@${p.author}</p><p class="text-[10px] text-slate-400 font-bold uppercase truncate">${p.category || 'Issue Trace'}</p></div></div>`).join('')}</div></div>`;
+                    L.marker([lat, lng], { icon, zIndexOffset: maxActions * 10 }).addTo(mapInstance).bindPopup(popupHtml);
+                });
+                mapInstance.setView([state.currentLat, state.currentLng], 12);
+                if (state.mapTarget) { setTimeout(() => { if (mapInstance) mapInstance.flyTo([state.mapTarget.lat, state.mapTarget.lng], 18, { animate: true, duration: 1.5 }); state.mapTarget = null; }, 100); }
+                setTimeout(() => { if (mapInstance) mapInstance.invalidateSize(); }, 300);
+            }, 100);
         }
 
         window.onload = init;
