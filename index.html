@@ -523,7 +523,7 @@
                             <div class="p-5 flex items-center justify-between">
                                 <div class="flex items-center space-x-3 cursor-pointer" onclick="location.hash='#/u/${author.username}'">
                                     <div class="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden shadow-sm"><img src="${author.avatar_url || 'https://api.dicebear.com/7.x/avataaars/svg?seed='+author.username}" class="w-full h-full object-cover"></div>
-                                    <div><p class="text-sm font-black dark:text-white">@${author.username || post.author}</p><button onclick="event.stopPropagation(); window.zoomToPrecision(${post.latitude}, ${post.longitude})" class="text-[9px] font-black uppercase text-indigo-600 tracking-widest flex items-center"><i data-lucide="map-pin" class="w-2.5 h-2.5 mr-1"></i>${post.location.split(',')[0]}</button></div>
+                                    <div><p class="text-sm font-black ">@${author.username || post.author}</p><button onclick="event.stopPropagation(); window.zoomToPrecision(${post.latitude}, ${post.longitude})" class="text-[9px] font-black uppercase text-indigo-600 tracking-widest flex items-center"><i data-lucide="map-pin" class="w-2.5 h-2.5 mr-1"></i>${post.location.split(',')[0]}</button></div>
                                 </div>
                                 <span class="bg-indigo-600/5 text-indigo-600 px-3 py-1 rounded-full text-[9px] font-black uppercase border border-indigo-600/10">${post.category || 'Roads'}</span>
                             </div>
